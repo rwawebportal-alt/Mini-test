@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-    <title>RWA Paid Test Series Portal - Live TCS CBT Mock Tests</title>
+    <title>RWA Paid Test Series App - Dashboard, Bookmarks & Live CBT</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
     
@@ -34,52 +34,139 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- TOP HEADER NAVIGATION -->
+    <!-- CLEAN ADVANCED APP HEADER (ONLY LOGO + SINGLE PROFILE BUTTON) -->
     <nav id="topHeaderNav" class="sky-nav sticky top-0 z-40 px-4 py-3 shadow-md">
-        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+        <div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
             <div class="flex items-center gap-3 cursor-pointer" onclick="goHomeHub()">
                 <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-500/30">R</div>
                 <div>
-                    <div class="font-extrabold text-lg leading-none text-slate-900 tracking-tight">RWA TEST SERIES</div>
-                    <div id="apiStatus" class="text-[11px] font-bold text-emerald-600 mt-0.5">● Official Paid Test Portal</div>
+                    <div class="font-extrabold text-base sm:text-lg leading-none text-slate-900 tracking-tight">RWA TEST SERIES</div>
+                    <div id="apiStatus" class="text-[11px] font-bold text-emerald-600 mt-0.5">● Live Server Connected</div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 flex-wrap">
-                <button onclick="goHomeHub()" class="btn-nav bg-indigo-600 text-white border-0">🏆 All Test Series</button>
-                <button onclick="openTokenSlide()" class="btn-nav bg-amber-500 text-white border-0">🔑 My Token (<span id="tokCountBadge">0</span>)</button>
-                
-                <div id="navAuthArea" class="flex items-center gap-2">
-                    <button id="navLoginBtn" onclick="openLoginModal()" class="btn-nav bg-blue-600 text-white border-0">🔐 Login</button>
-                    <div id="navProfileArea" class="hidden flex items-center gap-2">
-                        <button onclick="openProfileModal()" class="btn-nav bg-emerald-600 text-white border-0">👤 <span id="navUserNameText">Profile</span></button>
-                        <button onclick="handleLogout()" class="btn-nav bg-rose-600 text-white border-0">🚪 Logout</button>
-                    </div>
-                </div>
-            </div>
+            <!-- Single Unified Profile Button -->
+            <button id="navProfileBtn" onclick="openProfileModal()" class="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-3.5 py-2 rounded-2xl font-extrabold text-xs border-0 shadow-md cursor-pointer transition-transform active:scale-95">
+                <span class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-black" id="navProfileAvatar">👤</span>
+                <span id="navUserNameText" class="max-w-[120px] truncate">Profile</span>
+            </button>
         </div>
     </nav>
 
     <main class="max-w-7xl w-full mx-auto p-3 sm:p-6 flex-1 relative overflow-x-hidden">
 
-        <!-- SLIDE 1: DIRECT PAID TEST SERIES EXPLORER (DEFAULT ACTIVE) -->
+        <!-- SLIDE 1: MAIN APP SHELL (DASHBOARD + TABS + EXPLORER + BOOKMARKS) -->
         <section id="slideExplorer" class="slide-page active-slide">
-            <div class="sky-banner flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <button onclick="goHomeHub()" class="btn-nav bg-slate-900 text-white border-0 text-xs">🏆 All Series</button>
-                        <button id="backNavBtn" onclick="handleGlobalBack()" class="btn-nav bg-sky-600 text-white border-0 text-xs hidden">⬅ Back</button>
-                        <span id="crumbText" class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-950 font-extrabold text-[11px] uppercase">Official Exam Series</span>
+
+            <!-- LIVE SMART DASHBOARD CARDS -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                <div class="bg-white/95 border-2 border-indigo-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl font-black shrink-0">🏆</div>
+                    <div class="min-w-0">
+                        <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Total Series</div>
+                        <div id="dashTotalSeries" class="text-xl sm:text-2xl font-black text-slate-900 leading-tight">0</div>
                     </div>
-                    <h2 id="headingText" class="text-2xl sm:text-3xl font-black text-slate-900 mt-2">🏆 Paid Test Series</h2>
                 </div>
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <input type="text" id="searchBox" oninput="filterGrid()" placeholder="🔍 Search test series, folder or test..." 
-                           class="w-full sm:w-72 bg-white border-2 border-sky-300 rounded-2xl px-4 py-2.5 text-sm text-slate-900 font-medium shadow-sm outline-none focus:border-blue-600">
+
+                <div class="bg-white/95 border-2 border-sky-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl font-black shrink-0">📝</div>
+                    <div class="min-w-0">
+                        <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Total Tests</div>
+                        <div id="dashTotalTests" class="text-xl sm:text-2xl font-black text-slate-900 leading-tight">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white/95 border-2 border-emerald-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl font-black shrink-0">✅</div>
+                    <div class="min-w-0">
+                        <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Attempted</div>
+                        <div id="dashAttemptedTests" class="text-xl sm:text-2xl font-black text-emerald-600 leading-tight">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white/95 border-2 border-amber-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl font-black shrink-0">⏳</div>
+                    <div class="min-w-0">
+                        <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Remaining</div>
+                        <div id="dashRemainingTests" class="text-xl sm:text-2xl font-black text-amber-600 leading-tight">0</div>
+                    </div>
                 </div>
             </div>
 
-            <div id="mainGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+            <!-- APP NAVIGATION TABS (TESTS | DASHBOARD | BOOKMARKS) -->
+            <div class="flex items-center gap-2 bg-white/90 p-1.5 rounded-2xl border-2 border-sky-200 shadow-sm mb-5 overflow-x-auto">
+                <button id="appTabTests" onclick="switchAppTab('tests')" class="flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow border-0 cursor-pointer whitespace-nowrap transition-all">
+                    🏆 Test Series
+                </button>
+                <button id="appTabDashboard" onclick="switchAppTab('dashboard')" class="flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs text-slate-700 bg-transparent hover:bg-sky-50 border-0 cursor-pointer whitespace-nowrap transition-all">
+                    📊 My Progress
+                </button>
+                <button id="appTabBookmarks" onclick="switchAppTab('bookmarks')" class="flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs text-slate-700 bg-transparent hover:bg-sky-50 border-0 cursor-pointer whitespace-nowrap transition-all">
+                    🔖 Bookmarks (<span id="bookmarkCountBadge">0</span>)
+                </button>
+            </div>
+
+            <!-- VIEW A: TEST SERIES, FOLDERS & TESTS EXPLORER -->
+            <div id="appViewTests">
+                <div class="sky-banner flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button id="backNavBtn" onclick="handleGlobalBack()" class="btn-nav bg-sky-600 text-white border-0 text-xs hidden">⬅ Back</button>
+                            <span id="crumbText" class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-950 font-extrabold text-[11px] uppercase">Official Exam Series</span>
+                        </div>
+                        <h2 id="headingText" class="text-xl sm:text-2xl font-black text-slate-900 mt-1.5">🏆 All Paid Test Series</h2>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <input type="text" id="searchBox" oninput="filterGrid()" placeholder="🔍 Search test series, folder or test..." 
+                               class="w-full sm:w-72 bg-white border-2 border-sky-300 rounded-2xl px-4 py-2.5 text-sm text-slate-900 font-medium shadow-sm outline-none focus:border-blue-600">
+                    </div>
+                </div>
+
+                <div id="mainGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+            </div>
+
+            <!-- VIEW B: DETAILED PROGRESS DASHBOARD & RECENT ATTEMPTS -->
+            <div id="appViewDashboard" class="hidden space-y-5">
+                <div class="sky-card p-5">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+                        <div>
+                            <span class="text-[10px] font-black text-indigo-600 uppercase">Overall Completion</span>
+                            <h3 class="text-lg font-black text-slate-900">📈 Your Test Series Progress</h3>
+                        </div>
+                        <span id="dashProgressPercent" class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-black text-xs">0% Completed</span>
+                    </div>
+                    <div class="w-full h-3.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div id="dashProgressBar" class="h-full bg-gradient-to-r from-indigo-600 to-emerald-500 transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <p id="dashProgressSubtext" class="text-xs font-bold text-slate-600 mt-2.5">Abhi tak aapne 0 tests attempt kiye hain.</p>
+                </div>
+
+                <div class="sky-card p-5">
+                    <div class="flex justify-between items-center mb-4 pb-2 border-b border-sky-100">
+                        <div>
+                            <span class="text-[10px] font-black text-sky-700 uppercase">Attempt History</span>
+                            <h3 class="text-lg font-black text-slate-900">🏅 Recently Attempted Tests</h3>
+                        </div>
+                        <button onclick="clearAttemptHistory()" class="text-[11px] font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border-0 cursor-pointer">🗑 Reset History</button>
+                    </div>
+                    <div id="recentAttemptsList" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- VIEW C: SAVED QUESTION BOOKMARKS -->
+            <div id="appViewBookmarks" class="hidden space-y-4">
+                <div class="sky-banner flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px] uppercase">Revision Vault</span>
+                        <h2 class="text-xl sm:text-2xl font-black text-slate-900 mt-1">🔖 Saved Bookmarked Questions</h2>
+                        <p class="text-xs font-semibold text-slate-600 mt-0.5">Live test ya solutions ke dauran bookmark kiye gaye sabhi important questions.</p>
+                    </div>
+                    <button onclick="clearAllBookmarks()" class="btn-nav bg-rose-600 text-white border-0 text-xs">🗑 Clear All</button>
+                </div>
+
+                <div id="bookmarksListContainer" class="space-y-4"></div>
+            </div>
+
         </section>
 
         <!-- SLIDE 2: FULL-SCREEN TCS CBT MOCK TEST ENGINE -->
@@ -96,10 +183,8 @@
 
                         <h2 id="tcs-start-title" style="color: #1a237e; border-bottom: 1px solid #eee; padding-bottom: 12px; margin-bottom: 14px;">(TCS Pattern) Mock Test</h2>
                         
-                        <!-- Dynamic Compulsory + Optional Subject Cards (e.g., Hindi vs English) -->
                         <div id="subjects-selection-container"></div>
                         
-                        <!-- Deep Parsed Test Metadata Box -->
                         <div class="stats-box">
                             <div class="start-info"><span>Total Questions:</span> <span id="stat-qs">--</span></div>
                             <div class="start-info"><span>Total Time:</span> <span id="stat-time">--</span></div>
@@ -131,7 +216,7 @@
                     <!-- Horizontal Section Tabs -->
                     <div class="tcs-tabs-wrapper" id="tcs-tabs-container"></div>
 
-                    <!-- Question Number, Per-Question Timer & Marking Bar -->
+                    <!-- Question Number, Per-Question Timer, Marking & BOOKMARK Button -->
                     <div class="tcs-q-info-bar">
                         <div style="display: flex; align-items: center;">
                             <div class="tcs-q-badge" id="tcs-q-num">1</div>
@@ -140,7 +225,7 @@
                         <div class="tcs-marks">
                             <span class="tcs-m-pos" id="tcs-live-pos">+2.00</span>
                             <span class="tcs-m-neg" id="tcs-live-neg">-0.25</span>
-                            <span style="color:#f59e0b;">⚠️</span>
+                            <button id="tcs-bookmark-btn" onclick="toggleCurrentQuestionBookmark()" class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer transition-all">☆ Save</button>
                         </div>
                     </div>
 
@@ -301,7 +386,10 @@
                     <div class="tcs-page-inner" style="padding-bottom: 90px;">
                         <div class="fs-q-info">
                             <div class="fs-q-pill" id="fs-q-num">Question 1</div>
-                            <div id="fs-q-time-compare"></div>
+                            <div class="flex items-center gap-2">
+                                <div id="fs-q-time-compare"></div>
+                                <button id="fs-bookmark-btn" onclick="toggleSolutionQuestionBookmark()" class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer">☆ Save</button>
+                            </div>
                         </div>
                         <div class="fs-content">
                             <div class="fs-q-txt" id="fs-q-txt">Q Text</div>
@@ -319,45 +407,7 @@
             </div>
         </section>
 
-        <!-- SLIDE 3: USER PERSONAL TOKEN MANAGER -->
-        <section id="slideTokens" class="slide-page hidden-slide">
-            <div class="max-w-3xl mx-auto sky-card p-6">
-                <div class="flex justify-between items-center pb-4 mb-4 border-b border-sky-200">
-                    <div>
-                        <span class="text-xs font-extrabold text-amber-600 uppercase">Personal Account Token</span>
-                        <h2 class="text-2xl font-black text-slate-900">🔑 My Active Login Token</h2>
-                        <p class="text-xs text-slate-600 mt-0.5">Yahan sirf aapka khud ka login kiya gaya token dikhta hai.</p>
-                    </div>
-                    <button onclick="goHomeHub()" class="btn-nav bg-slate-900 text-white border-0">🏆 All Series</button>
-                </div>
-
-                <div class="bg-sky-50 border-2 border-sky-200 rounded-2xl p-4 mb-6">
-                    <h4 class="font-extrabold text-sm text-slate-800 mb-3">➕ Add / Update Personal Token</h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="text-xs font-bold text-slate-700">Account Label / Name</label>
-                            <input id="newTokLabel" type="text" placeholder="e.g. My Personal Account" class="w-full bg-white border border-sky-300 rounded-xl p-2.5 text-xs text-slate-900 mt-1 outline-none">
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-slate-700">User-ID (Auto-detected if blank)</label>
-                            <input id="newTokUid" type="text" placeholder="Auto from Token" class="w-full bg-white border border-sky-300 rounded-xl p-2.5 text-xs text-slate-900 mt-1 outline-none">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-xs font-bold text-slate-700">JWT Authorization Token</label>
-                        <textarea id="newTokValue" rows="3" placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..." class="w-full bg-white border border-sky-300 rounded-xl p-2.5 text-xs text-slate-900 mt-1 font-mono outline-none"></textarea>
-                    </div>
-                    <button onclick="addNewToken()" class="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs border-0 shadow-md cursor-pointer">💾 Verify & Save My Token</button>
-                </div>
-
-                <div>
-                    <h4 class="font-extrabold text-sm text-slate-800 mb-3">📋 Your Active Token(s)</h4>
-                    <div id="tokenListContainer" class="space-y-3"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- SLIDE 4: PDF VIEWER (FOR TEST PAPER PDFS) -->
+        <!-- SLIDE 3: PDF VIEWER -->
         <section id="slidePdf" class="slide-page hidden-slide">
             <div class="sky-card p-4">
                 <div class="flex flex-wrap justify-between items-center gap-2 mb-3 pb-2 border-b border-sky-200">
@@ -375,7 +425,7 @@
 
     </main>
 
-    <!-- LOGIN MODAL (TRIGGERS ONLY WHEN USER CLICKS START TEST) -->
+    <!-- LOGIN MODAL -->
     <div id="loginModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-sky-300 animate-slideInSmooth">
             <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
@@ -389,13 +439,11 @@
                 <button id="closeLoginModalBtn" onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer bg-transparent border-0">✕</button>
             </div>
 
-            <!-- 2 Login Option Tabs -->
             <div class="grid grid-cols-2 gap-2 bg-sky-50 p-1.5 rounded-2xl border border-sky-200 mb-4">
                 <button id="tabBtnCreds" onclick="switchLoginMode('creds')" class="py-2 px-3 rounded-xl font-extrabold text-xs bg-blue-600 text-white shadow transition-all cursor-pointer border-0">📱 Number & Password</button>
                 <button id="tabBtnToken" onclick="switchLoginMode('token')" class="py-2 px-3 rounded-xl font-extrabold text-xs text-slate-700 bg-transparent hover:bg-sky-100 transition-all cursor-pointer border-0">🔑 Direct Token</button>
             </div>
 
-            <!-- Status / Error Alert Box -->
             <div id="loginStatusAlert" class="hidden mb-3 p-3 rounded-xl text-xs font-extrabold"></div>
 
             <!-- OPTION 1: Phone/Email + Password -->
@@ -423,25 +471,43 @@
         </div>
     </div>
 
-    <!-- USER PROFILE MODAL -->
-    <div id="profileModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border-2 border-emerald-300 animate-slideInSmooth max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">👤</span>
-                    <h3 class="font-black text-lg text-slate-900">My RWA Profile & Token</h3>
+    <!-- ALL-IN-ONE PROFILE MODAL (CONTAINS PROFILE, LOGIN, MY TOKEN MANAGER & LOGOUT) -->
+    <div id="profileModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border-2 border-indigo-200 animate-slideInSmooth max-h-[92vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 pb-2.5 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-lg">👤</div>
+                    <div>
+                        <h3 class="font-black text-base sm:text-lg text-slate-900 leading-none">Account & Token Hub</h3>
+                        <p class="text-[11px] font-bold text-slate-500 mt-0.5">Profile, Personal Token & Login Settings</p>
+                    </div>
                 </div>
                 <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-700 font-black text-lg cursor-pointer bg-transparent border-0">✕</button>
             </div>
+
+            <!-- Dynamic Profile / Guest Login Content -->
             <div id="profileDetailsContent" class="space-y-3 text-sm text-slate-700"></div>
-            <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center">
-                <button onclick="handleLogout()" class="btn-nav bg-rose-600 text-white border-0">🚪 Logout Account</button>
-                <button onclick="closeProfileModal()" class="btn-nav bg-slate-900 text-white border-0">Close</button>
+
+            <!-- Collapsible My Token Manager Inside Profile -->
+            <div id="profileTokenManagerBox" class="hidden mt-4 pt-4 border-t border-slate-200">
+                <div class="bg-sky-50 border-2 border-sky-200 rounded-2xl p-4 mb-3">
+                    <h4 class="font-extrabold text-xs text-slate-800 uppercase mb-2.5">➕ Add / Update Personal Token (<span id="tokCountBadge">0</span>)</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
+                        <input id="newTokLabel" type="text" placeholder="Account Label / Name" class="w-full bg-white border border-sky-300 rounded-xl p-2 text-xs text-slate-900 outline-none">
+                        <input id="newTokUid" type="text" placeholder="User-ID (Auto if blank)" class="w-full bg-white border border-sky-300 rounded-xl p-2 text-xs text-slate-900 outline-none">
+                    </div>
+                    <textarea id="newTokValue" rows="2" placeholder="Paste JWT Token (eyJ0eXAiOiJKV1Qi...)" class="w-full bg-white border border-sky-300 rounded-xl p-2 text-xs text-slate-900 font-mono outline-none mb-2.5"></textarea>
+                    <button onclick="addNewToken()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-extrabold px-4 py-2 rounded-xl text-xs border-0 shadow cursor-pointer">💾 Verify & Save Token</button>
+                </div>
+                <div id="tokenListContainer" class="space-y-2"></div>
             </div>
+
+            <!-- Unified Action Buttons Inside Profile Modal -->
+            <div id="profileFooterActions" class="mt-5 pt-3.5 border-t border-slate-100 flex flex-wrap justify-between items-center gap-2"></div>
         </div>
     </div>
 
-    <!-- SCRIPTS: Main App & Dedicated TCS CBT Engine -->
+    <!-- SCRIPTS -->
     <script src="app.js"></script>
     <script src="tcs-engine.js"></script>
 </body>

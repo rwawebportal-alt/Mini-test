@@ -58,8 +58,8 @@
         <!-- SLIDE 1: MAIN APP SHELL (DASHBOARD + TABS + EXPLORER + BOOKMARKS) -->
         <section id="slideExplorer" class="slide-page active-slide">
 
-            <!-- DASHBOARD HEADER GROUP (Auto-hides inside Test Series) -->
-            <div id="dashboardHeaderGroup">
+            <!-- TOP DASHBOARD & TABS WRAPPER (AUTO HIDES WHEN OPENING A TEST SERIES FOLDER/TESTS) -->
+            <div id="topDashboardAndTabs">
                 <!-- LIVE SMART DASHBOARD CARDS -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
                     <div class="bg-white/95 border-2 border-indigo-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
@@ -114,6 +114,7 @@
                 <div class="sky-banner flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
+                            <button id="homeSeriesBtn" onclick="goHomeHub()" class="btn-nav bg-slate-900 text-white border-0 text-xs hidden">🏠 All Series</button>
                             <button id="backNavBtn" onclick="handleGlobalBack()" class="btn-nav bg-sky-600 text-white border-0 text-xs hidden">⬅ Back</button>
                             <span id="crumbText" class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-950 font-extrabold text-[11px] uppercase">Official Exam Series</span>
                         </div>
@@ -128,7 +129,7 @@
                 <div id="mainGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
             </div>
 
-            <!-- VIEW B: DETAILED PROGRESS DASHBOARD & RECENT ATTEMPTS -->
+            <!-- VIEW B: DETAILED PROGRESS DASHBOARD & CLICKABLE RECENT ATTEMPTS -->
             <div id="appViewDashboard" class="hidden space-y-5">
                 <div class="sky-card p-5">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
@@ -147,7 +148,7 @@
                 <div class="sky-card p-5">
                     <div class="flex justify-between items-center mb-4 pb-2 border-b border-sky-100">
                         <div>
-                            <span class="text-[10px] font-black text-sky-700 uppercase">Attempt History</span>
+                            <span class="text-[10px] font-black text-sky-700 uppercase">Attempt History (Click any test for Scorecard & Solutions)</span>
                             <h3 class="text-lg font-black text-slate-900">🏅 Recently Attempted Tests</h3>
                         </div>
                         <button onclick="clearAttemptHistory()" class="text-[11px] font-extrabold text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl border-0 cursor-pointer">🗑 Reset History</button>
@@ -156,18 +157,50 @@
                 </div>
             </div>
 
-            <!-- VIEW C: SAVED QUESTION BOOKMARKS -->
+            <!-- VIEW C: SAVED QUESTION BOOKMARKS (LIST VIEW + FULL QUESTION VIEW WITH NEXT/PREV) -->
             <div id="appViewBookmarks" class="hidden space-y-4">
-                <div class="sky-banner flex flex-wrap justify-between items-center gap-3">
-                    <div>
-                        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px] uppercase">Revision Vault</span>
-                        <h2 class="text-xl sm:text-2xl font-black text-slate-900 mt-1">🔖 Saved Bookmarked Questions</h2>
-                        <p class="text-xs font-semibold text-slate-600 mt-0.5">Test ya solutions ke dauran save kiye gaye sabhi important questions.</p>
+                <!-- Sub-view 1: Compact Question List -->
+                <div id="bookmarksListSubView" class="space-y-4">
+                    <div class="sky-banner flex flex-wrap justify-between items-center gap-3">
+                        <div>
+                            <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px] uppercase">Revision Vault</span>
+                            <h2 class="text-xl sm:text-2xl font-black text-slate-900 mt-1">🔖 Saved Bookmarked Questions</h2>
+                            <p class="text-xs font-semibold text-slate-600 mt-0.5">Kisi bhi question par click karke uske Options aur Full Solution dekhein.</p>
+                        </div>
+                        <button onclick="clearAllBookmarks()" class="btn-nav bg-rose-600 text-white border-0 text-xs">🗑 Clear All</button>
                     </div>
-                    <button onclick="clearAllBookmarks()" class="btn-nav bg-rose-600 text-white border-0 text-xs">🗑 Clear All</button>
+
+                    <div id="bookmarksListContainer" class="space-y-3"></div>
                 </div>
 
-                <div id="bookmarksListContainer" class="space-y-3"></div>
+                <!-- Sub-view 2: Single Bookmark Full Detail View (Options + Explanation + Prev/Next) -->
+                <div id="bookmarkDetailSubView" class="hidden">
+                    <div class="sky-card p-5 sm:p-6 space-y-4">
+                        <div class="flex flex-wrap justify-between items-center gap-2 pb-3 border-b border-sky-200">
+                            <button onclick="closeBookmarkDetailView()" class="btn-nav bg-slate-900 text-white border-0 text-xs">⬅ Back to Bookmarks List</button>
+                            <div class="flex items-center gap-2">
+                                <span id="bmDetailCounter" class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-900 font-black text-xs">1 / 1</span>
+                                <button id="bmDetailDeleteBtn" class="btn-nav bg-rose-600 text-white border-0 text-xs">🗑 Remove</button>
+                            </div>
+                        </div>
+
+                        <div id="bmDetailMeta" class="flex items-center gap-2 flex-wrap"></div>
+
+                        <div id="bmDetailQuestion" class="text-base sm:text-lg font-bold text-slate-900 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200"></div>
+
+                        <div id="bmDetailOptions" class="space-y-2.5"></div>
+
+                        <div class="bg-sky-50 border-2 border-sky-200 rounded-2xl p-4">
+                            <div class="font-black text-sm text-indigo-900 mb-2">💡 Official Full Explanation</div>
+                            <div id="bmDetailSolution" class="text-sm text-slate-800 leading-relaxed"></div>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-4 border-t border-sky-200 gap-3">
+                            <button id="bmPrevBtn" onclick="prevBookmarkDetail()" class="btn-nav bg-slate-800 text-white border-0 text-xs px-5 py-3">⬅ Previous Question</button>
+                            <button id="bmNextBtn" onclick="nextBookmarkDetail()" class="btn-watch text-xs px-6 py-3">Next Question ➔</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </section>
@@ -347,6 +380,11 @@
                             </div>
                         </div>
 
+                        <div class="a-card" id="weak-areas-card" style="display:none; background:#ffebee; border: 1px solid #ffcdd2;">
+                            <h3 style="color:#c62828; margin-bottom:10px; text-align:center; font-weight: 800;">⚠️ Weak Subjects to Improve</h3>
+                            <ul id="weak-areas-list" style="color:#b71c1c; font-size:14px; padding-left:20px; line-height:1.6;"></ul>
+                        </div>
+
                         <div class="sec-title">Section Wise Stats</div>
                         <div id="analysis-sections-container"></div>
                         
@@ -405,28 +443,7 @@
             </div>
         </section>
 
-        <!-- SLIDE 3: BOOKMARK FULL SCREEN VIEWER -->
-        <section id="slideBookmarkViewer" class="slide-page hidden-slide bg-slate-50 min-h-screen z-50">
-            <div class="sky-nav sticky top-0 z-40 px-3 py-3 flex justify-between items-center bg-indigo-700 text-white shadow-md">
-                <button onclick="closeBookmarkViewer()" class="font-bold text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg border-0 cursor-pointer text-white">⬅ Back</button>
-                <div class="font-black text-base">🔖 Saved Bookmark</div>
-                <button onclick="removeCurrentBookmarkFullScreen()" class="font-bold text-[11px] bg-rose-600 px-2.5 py-1.5 rounded-lg border-0 cursor-pointer text-white">🗑 Remove</button>
-            </div>
-            
-            <div class="max-w-4xl mx-auto p-4 sm:p-6 pb-24" id="bookmarkViewerContent">
-                <!-- Content injected via JS -->
-            </div>
-
-            <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 flex justify-between items-center z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-                <div class="max-w-4xl mx-auto w-full flex justify-between items-center px-2">
-                    <button onclick="prevBookmark()" id="bmkBtnPrev" class="btn-watch bg-slate-600 text-white px-5 border-0 rounded-xl font-bold py-2.5 shadow">⬅ Previous</button>
-                    <span id="bookmarkCounter" class="text-xs font-black text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-200">1 / 5</span>
-                    <button onclick="nextBookmark()" id="bmkBtnNext" class="btn-watch bg-indigo-600 text-white px-6 border-0 rounded-xl font-bold py-2.5 shadow">Next ➔</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- SLIDE 4: PDF VIEWER (FOR TEST PAPER PDFS) -->
+        <!-- SLIDE 3: PDF VIEWER -->
         <section id="slidePdf" class="slide-page hidden-slide">
             <div class="sky-card p-4">
                 <div class="flex flex-wrap justify-between items-center gap-2 mb-3 pb-2 border-b border-sky-200">
@@ -510,7 +527,7 @@
             <!-- Collapsible My Token Manager Inside Profile -->
             <div id="profileTokenManagerBox" class="hidden mt-4 pt-4 border-t border-slate-200">
                 <div class="bg-sky-50 border-2 border-sky-200 rounded-2xl p-4 mb-3">
-                    <h4 class="font-extrabold text-xs text-slate-800 uppercase mb-2.5">➕ Add / Update Personal Token (<span id="tokCountBadgeModal">0</span>)</h4>
+                    <h4 class="font-extrabold text-xs text-slate-800 uppercase mb-2.5">➕ Add / Update Personal Token (<span id="tokCountBadge">0</span>)</h4>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
                         <input id="newTokLabel" type="text" placeholder="Account Label / Name" class="w-full bg-white border border-sky-300 rounded-xl p-2 text-xs text-slate-900 outline-none">
                         <input id="newTokUid" type="text" placeholder="User-ID (Auto if blank)" class="w-full bg-white border border-sky-300 rounded-xl p-2 text-xs text-slate-900 outline-none">

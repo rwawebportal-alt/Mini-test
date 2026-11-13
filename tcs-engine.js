@@ -1,6 +1,5 @@
 // =========================================================
-// RWA SKY PORTAL - EXACT TCS CBT MOCK TEST ENGINE (tcs-engine.js)
-// Matches Screenshot 4 (Start + Optional Selector) & Screenshot 5 (Live CBT UI)
+// RWA SKY PORTAL - EXACT TCS CBT MOCK TEST & BOOKMARK ENGINE (tcs-engine.js)
 // =========================================================
 
 (function injectExactTcsStyles() {
@@ -8,7 +7,6 @@
     const st = document.createElement("style");
     st.id = "tcs-exact-fix-styles";
     st.innerHTML = `
-        /* Fix parent transform breaking position:fixed (Removes blue border on left/top) */
         #slideTestAttempt,
         #slideTestAttempt.active-slide {
             animation: none !important;
@@ -31,7 +29,6 @@
             overflow: hidden;
         }
 
-        /* STEP 1: START SCREEN EXACT MATCH (Screenshot 4) */
         #start-screen {
             background: #555555 !important;
             display: flex;
@@ -167,7 +164,6 @@
             cursor: pointer !important;
         }
 
-        /* STEP 2: LIVE TEST SCREEN EXACT MATCH (Screenshot 5) */
         #live-test-screen .tcs-q-badge {
             background: #757575 !important;
             color: #ffffff !important;
@@ -239,12 +235,12 @@ let tcsState = {
     activeTestKey: null,
     testMeta: null,
     rawAllQuestions: [],
-    allParsedSections: [],      // Every section found in JSON (Compulsory + All Optionals)
-    selectedOptionalByGroup: {}, // e.g. { "A": "sec_212" }
-    activeSections: [],         // Only Compulsory + Chosen Optional sections
-    questions: [],              // Active questions for the live test (e.g. 80 Qs)
+    allParsedSections: [],
+    selectedOptionalByGroup: {},
+    activeSections: [],
+    questions: [],
     currentQIdx: 0,
-    responses: {},              // idx -> { chosenOption, status, timeSpent }
+    responses: {},
     activeSectionIndex: 0,
     timerInterval: null,
     secondsLeft: 0,
@@ -258,7 +254,7 @@ let tcsState = {
 };
 
 // =========================================================
-// SMART RWA SUBJECT & OPTIONAL DETECTOR
+// SUBJECT & OPTIONAL DETECTOR
 // =========================================================
 const RWA_KNOWN_SECTION_IDS = {
     "206": "General Awareness",
@@ -273,7 +269,6 @@ const RWA_KNOWN_SECTION_IDS = {
     "222": "Numerical & Mental Ability Test",
     "234": "Chemistry",
     "223": "Mental Aptitude/Intelligence/Reasoning"
-    
 };
 
 function stripHtmlText(html) {
@@ -295,7 +290,6 @@ function cleanQuestionHtml(rawHtml) {
 
 function detectSmartSubjectName(secId, questionsList, rawLabel) {
     const cleanRaw = String(rawLabel || "").trim();
-    // If JSON already has a real descriptive subject name (not "Section 208" or just digits)
     if (
         cleanRaw &&
         !/^section\s*\d+$/i.test(cleanRaw) &&
@@ -308,8 +302,6 @@ function detectSmartSubjectName(secId, questionsList, rawLabel) {
     }
 
     const idStr = String(secId || "").trim();
-
-    // Combine sample text from questions in this section
     let combinedText = "";
     const sampleCount = Math.min(questionsList.length, 25);
     for (let i = 0; i < sampleCount; i++) {
@@ -322,17 +314,14 @@ function detectSmartSubjectName(secId, questionsList, rawLabel) {
     }
     const lower = combinedText.toLowerCase();
 
-    // Count Devanagari vs Latin characters
     const devMatches = combinedText.match(/[\u0900-\u097F]/g) || [];
     const latMatches = combinedText.match(/[a-zA-Z]/g) || [];
     const devCount = devMatches.length;
     const latCount = latMatches.length;
 
-    // 1. Check English Language Section
     const engKeywords = [
         "synonym", "antonym", "idiom", "misspelt", "correctly spelt", "grammatical error",
-        "passive voice", "active voice", "indirect speech", "direct speech", "one word substitution",
-        "underlined segment", "fill in the blank", "appropriate option", "cloze", "comprehension"
+        "passive voice", "active voice", "indirect speech", "direct speech", "one word substitution"
     ];
     let engHits = 0;
     engKeywords.forEach(kw => { if (lower.includes(kw)) engHits += 2; });
@@ -340,11 +329,9 @@ function detectSmartSubjectName(secId, questionsList, rawLabel) {
     else if (devCount < latCount * 0.03 && latCount > 200) engHits += 4;
     if (idStr === "212" || idStr === "207" || idStr === "210") engHits += 3;
 
-    // 2. Check Hindi Language Section
     const hindiKeywords = [
         "विलोम", "पर्यायवाची", "मुहावरा", "मुहावरे", "वर्तनी", "वाक्यांश", "संधि", "समास",
-        "तत्सम", "तद्भव", "उपसर्ग", "प्रत्यय", "गद्यांश", "रिक्त स्थान", "एकार्थी", "अनेकार्थी",
-        "लोकोक्ति", "पारिभाषिक शब्द", "पारिभाषिक", "रेखांकित", "समानार्थी", "शुद्ध वाक्य", "अशुद्ध", "त्रुटि"
+        "तत्सम", "तद्भव", "उपसर्ग", "प्रत्यय", "गद्यांश", "रिक्त स्थान", "रेखांकित"
     ];
     let hindiHits = 0;
     hindiKeywords.forEach(kw => { if (combinedText.includes(kw)) hindiHits += 2; });
@@ -353,26 +340,10 @@ function detectSmartSubjectName(secId, questionsList, rawLabel) {
     if (engHits >= 5 && engHits > hindiHits) return "English";
     if (hindiHits >= 4 && hindiHits >= engHits) return "Hindi";
 
-    // 3. Score Reasoning, Mathematics, General Awareness, Computer
-    const reasoningKeywords = [
-        "जिस प्रकार", "उसी प्रकार", "संबंधित है", "श्रृंखला", "कूट भाषा", "कूटबद्ध", "दर्पण", "पासा",
-        "कथन", "निष्कर्ष", "असंगत", "विषम", "आकृति", "कागज", "मोड़", "बैठे हैं", "दिशा", "रक्त संबंध",
-        "शब्दकोश", "अक्षर-समूह", "प्रश्नवाचक चिन्ह", "(?)", "coding", "syllogism", "mirror", "analogy"
-    ];
-    const mathKeywords = [
-        "प्रतिशत", "अनुपात", "समानुपाती", "औसत", "लाभ", "हानि", "ब्याज", "चक्रवृद्धि", "क्षेत्रफल",
-        "आयतन", "त्रिभुज", "वृत्त", "बेलन", "शंकु", "चाल", "दूरी", "पाइप", "छूट", "अंकित मूल्य",
-        "क्रय मूल्य", "विक्रय मूल्य", "विभाज्य", "ल.स.", "म.स.", "मूलधन", "समीकरण", "\\frac", "\\sqrt",
-        "₹", "cm²", "km/h", "proportional", "interest", "triangle", "radius"
-    ];
-    const gaKeywords = [
-        "संविधान", "अनुच्छेद", "राष्ट्रपति", "प्रधानमंत्री", "संसद", "पंचवर्षीय", "जनगणना", "नदी",
-        "राष्ट्रीय उद्यान", "नृत्य", "त्योहार", "पुरस्कार", "इतिहास", "मुगल", "हड़प्पा", "गवर्नर",
-        "अर्थव्यवस्था", "rbi", "मुख्यमंत्री", "राज्यपाल", "संशोधन", "मौलिक अधिकार", "मंदिर", "लेखक", "ओलंपिक"
-    ];
-    const compKeywords = [
-        "ms word", "ms excel", "ctrl +", "shortcut key", "कंप्यूटर", "मेमोरी", "सॉफ्टवेयर", "इंटरनेट", "ब्राउज़र", "cpu"
-    ];
+    const reasoningKeywords = ["जिस प्रकार", "उसी प्रकार", "संबंधित है", "श्रृंखला", "कूट भाषा", "दर्पण", "पासा", "कथन", "निष्कर्ष", "असंगत"];
+    const mathKeywords = ["प्रतिशत", "अनुपात", "समानुपाती", "औसत", "लाभ", "हानि", "ब्याज", "क्षेत्रफल", "आयतन", "त्रिभुज", "वृत्त", "चाल", "दूरी"];
+    const gaKeywords = ["संविधान", "अनुच्छेद", "राष्ट्रपति", "प्रधानमंत्री", "संसद", "पंचवर्षीय", "जनगणना", "नदी", "इतिहास", "मुगल"];
+    const compKeywords = ["ms word", "ms excel", "ctrl +", "shortcut key", "कंप्यूटर", "मेमोरी", "सॉफ्टवेयर"];
 
     let rScore = (idStr === "208") ? 5 : 0;
     let mScore = (idStr === "209") ? 5 : 0;
@@ -400,7 +371,7 @@ function detectSmartSubjectName(secId, questionsList, rawLabel) {
 }
 
 // =========================================================
-// LAUNCH TEST & FETCH QUESTIONS / SECTIONS
+// LAUNCH TEST
 // =========================================================
 window.launchTcsCbtEngine = async function(tKey) {
     const t = state.testMap[tKey];
@@ -416,7 +387,6 @@ window.launchTcsCbtEngine = async function(tKey) {
 
     showSlide("slideTestAttempt");
 
-    // Show Only Start Screen
     document.getElementById("start-screen").classList.remove("tcs-hidden");
     document.getElementById("live-test-screen").classList.add("tcs-hidden");
     document.getElementById("submit-screen").classList.add("tcs-hidden");
@@ -428,7 +398,6 @@ window.launchTcsCbtEngine = async function(tKey) {
     const subContainer = document.getElementById("subjects-selection-container");
     subContainer.innerHTML = `<div style="text-align:center; padding:18px; font-weight:700; color:#475569;">🔄 Loading Test Subjects & Questions...</div>`;
 
-    // 1. Fetch Questions JSON
     let rawQUrl = t.test_questions_url || t.questions_url || "";
     if (rawQUrl) rawQUrl = rawQUrl.replace(/\\\//g, "/");
 
@@ -450,7 +419,6 @@ window.launchTcsCbtEngine = async function(tKey) {
         }
     }
 
-    // 2. Also check if testMeta has a sections metadata URL
     let externalSecMap = {};
     let rawSecUrl = t.test_sections_url || t.test_section_url || t.section_url || "";
     if (rawSecUrl) {
@@ -477,8 +445,6 @@ window.launchTcsCbtEngine = async function(tKey) {
     }
 
     tcsState.rawAllQuestions = loadedQuestions;
-
-    // 3. Build Sections, Detect Real Subject Names & Optional Groups
     prepareAllSectionsAndRenderStart(externalSecMap);
 };
 
@@ -511,11 +477,8 @@ function prepareAllSectionsAndRenderStart(externalSecMap) {
         );
 
         let finalName = detectedName;
-        if (usedNamesCount[finalName]) {
-            usedNamesCount[finalName]++;
-        } else {
-            usedNamesCount[finalName] = 1;
-        }
+        if (usedNamesCount[finalName]) usedNamesCount[finalName]++;
+        else usedNamesCount[finalName] = 1;
 
         const isLangSubject = (
             finalName === "English" ||
@@ -535,9 +498,6 @@ function prepareAllSectionsAndRenderStart(externalSecMap) {
         });
     });
 
-    // Determine if Optional Subject Selection should be enabled
-    // Case A: Explicitly marked optional in JSON
-    // Case B: Test has BOTH English and Hindi (or multiple language sections) AND either show_sectionselector=="1" or 5+ sections or marks indicate 1 optional section
     const langSections = parsedSections.filter(s => s.isLangSubject);
     const firstQPosMarks = parseFloat((tcsState.rawAllQuestions[0] && tcsState.rawAllQuestions[0].positive_marks) || 2) || 2;
     const expectedActiveQs = t.marks ? Math.round(parseFloat(t.marks) / firstQPosMarks) : 0;
@@ -558,16 +518,8 @@ function prepareAllSectionsAndRenderStart(externalSecMap) {
         }
     });
 
-    // Sort compulsory sections in clean TCS order (General Awareness, General Intelligence and Reasoning, Mathematics)
-    const fixedOrderPriority = {
-        "General Awareness": 1,
-        "General Intelligence and Reasoning": 2,
-        "Mathematics": 3
-    };
-    const optionalOrderPriority = {
-        "English": 1,
-        "Hindi": 2
-    };
+    const fixedOrderPriority = { "General Awareness": 1, "General Intelligence and Reasoning": 2, "Mathematics": 3 };
+    const optionalOrderPriority = { "English": 1, "Hindi": 2 };
 
     const fixedSecs = parsedSections
         .filter(s => !s.isOptional)
@@ -579,7 +531,6 @@ function prepareAllSectionsAndRenderStart(externalSecMap) {
 
     tcsState.allParsedSections = [...fixedSecs, ...optionalSecs];
 
-    // Default select first optional subject (e.g. English) in Group A
     if (optionalSecs.length > 0 && !tcsState.selectedOptionalByGroup["A"]) {
         tcsState.selectedOptionalByGroup["A"] = optionalSecs[0].secId;
     }
@@ -624,7 +575,6 @@ function renderStartScreenUI() {
 
     container.innerHTML = html;
 
-    // Calculate Active Questions, Time & Marks dynamically (e.g. 80 Qs, 60 mins, 160 Marks)
     const activeSecs = getActiveChosenSections();
     let totalActiveQs = 0;
     let totalActiveMarks = 0;
@@ -656,9 +606,6 @@ function renderStartScreenUI() {
             <div class="start-info"><span>Maximum Marks:</span> <span id="stat-marks">${Math.round(totalActiveMarks)}</span></div>
         `;
     }
-
-    const startBtn = document.getElementById("tcs-start-btn");
-    if (startBtn) startBtn.textContent = "Start Test";
 }
 
 window.selectOptionalSubject = function(groupKey, secId) {
@@ -675,13 +622,12 @@ function getActiveChosenSections() {
 }
 
 // =========================================================
-// STEP 2: START LIVE CBT TEST
+// START LIVE CBT TEST
 // =========================================================
 window.startTest = function() {
     const t = tcsState.testMeta || {};
     const chosenSecs = getActiveChosenSections();
 
-    // Build flat active questions array (1..80) and section mappings
     const flatQuestions = [];
     tcsState.activeSections = chosenSecs.map(sec => {
         const mappedQs = sec.questions.map(q => {
@@ -702,7 +648,6 @@ window.startTest = function() {
     tcsState.currentQIdx = 0;
     tcsState.activeSectionIndex = 0;
 
-    // Setup Timing (Overall or Sectional like 15+15+15+15)
     const tStr = String(t.time || "60").trim();
     if (tStr.includes("+")) {
         const parts = tStr.split("+").map(n => (parseInt(n.trim()) || 15) * 60);
@@ -718,9 +663,6 @@ window.startTest = function() {
 
     document.getElementById("start-screen").classList.add("tcs-hidden");
     document.getElementById("live-test-screen").classList.remove("tcs-hidden");
-
-    const fSecInfo = document.getElementById("tcs-footer-sec-info");
-    if (fSecInfo) fSecInfo.textContent = "";
 
     renderTcsTabs();
     loadQuestion(0);
@@ -745,7 +687,6 @@ function startTcsTimer() {
     tcsState.timerInterval = setInterval(() => {
         if (tcsState.isSubmitted) return;
 
-        // 1. Increment Per-Question Time Spent (00:04 in Screenshot 5)
         const curIdx = tcsState.currentQIdx;
         if (!tcsState.responses[curIdx]) {
             tcsState.responses[curIdx] = { status: "unattempted", chosenOption: null, timeSpent: 0 };
@@ -753,14 +694,10 @@ function startTcsTimer() {
         tcsState.responses[curIdx].timeSpent = (tcsState.responses[curIdx].timeSpent || 0) + 1;
 
         const qTimeEl = document.getElementById("tcs-q-time");
-        if (qTimeEl) {
-            qTimeEl.textContent = formatMMSS(tcsState.responses[curIdx].timeSpent);
-        }
+        if (qTimeEl) qTimeEl.textContent = formatMMSS(tcsState.responses[curIdx].timeSpent);
 
-        // 2. Decrement Main / Sectional Countdown Timer
         if (tcsState.secondsLeft <= 0) {
             if (tcsState.isSectionalTiming && tcsState.activeSectionIndex < tcsState.activeSections.length - 1) {
-                // Auto move to next section when sectional timer expires
                 tcsState.activeSectionIndex++;
                 tcsState.secondsLeft = tcsState.sectionSecondsLeft[tcsState.activeSectionIndex];
                 renderTcsTabs();
@@ -790,8 +727,7 @@ function renderTcsTabs() {
 
     tcsState.activeSections.forEach((sec, idx) => {
         const isActive = idx === tcsState.activeSectionIndex;
-        const cls = isActive ? "tcs-tab active" : "tcs-tab";
-        wrap.innerHTML += `<div class="${cls}" onclick="switchTcsSection(${idx})">${sec.name}</div>`;
+        wrap.innerHTML += `<div class="${isActive ? "tcs-tab active" : "tcs-tab"}" onclick="switchTcsSection(${idx})">${sec.name}</div>`;
     });
 }
 
@@ -803,9 +739,7 @@ window.switchTcsSection = function(secIdx) {
     tcsState.activeSectionIndex = secIdx;
     renderTcsTabs();
     const firstQInSec = tcsState.activeSections[secIdx].questions[0];
-    if (firstQInSec) {
-        loadQuestion(firstQInSec.originalIndex);
-    }
+    if (firstQInSec) loadQuestion(firstQInSec.originalIndex);
 };
 
 function loadQuestion(globalIdx) {
@@ -813,17 +747,13 @@ function loadQuestion(globalIdx) {
     const q = tcsState.questions[globalIdx];
     if (!q) return;
 
-    // Ensure response entry exists for per-question timer
     if (!tcsState.responses[globalIdx]) {
         tcsState.responses[globalIdx] = { status: "unattempted", chosenOption: null, timeSpent: 0 };
     }
 
-    // Sync active section tab
     let foundSecIdx = tcsState.activeSectionIndex;
     tcsState.activeSections.forEach((sec, sIdx) => {
-        if (sec.questions.some(sq => sq.originalIndex === globalIdx)) {
-            foundSecIdx = sIdx;
-        }
+        if (sec.questions.some(sq => sq.originalIndex === globalIdx)) foundSecIdx = sIdx;
     });
     if (foundSecIdx !== tcsState.activeSectionIndex) {
         if (tcsState.isSectionalTiming) {
@@ -834,32 +764,34 @@ function loadQuestion(globalIdx) {
     }
     renderTcsTabs();
 
-    // Update Question Number & Per-Question Timer (Screenshot 5 match)
     document.getElementById("tcs-q-num").textContent = globalIdx + 1;
     const qTimeEl = document.getElementById("tcs-q-time");
-    if (qTimeEl) {
-        qTimeEl.textContent = formatMMSS(tcsState.responses[globalIdx].timeSpent || 0);
-    }
+    if (qTimeEl) qTimeEl.textContent = formatMMSS(tcsState.responses[globalIdx].timeSpent || 0);
 
-    // Format positive/negative marks cleanly (+2, -0.25)
     const posNum = parseFloat(q.positive_marks || 2);
     const negNum = parseFloat(q.negative_marks || 0.25);
     document.getElementById("tcs-live-pos").textContent = `+${Number.isInteger(posNum) ? posNum : posNum.toFixed(2)}`;
     document.getElementById("tcs-live-neg").textContent = `-${Number.isInteger(negNum) ? negNum : negNum}`;
 
-    // Question Text
+    // Update Live Test Bookmark Button State
+    const qKey = `test_${tcsState.testMeta.id || tcsState.activeTestKey}_q_${q.id || globalIdx}`;
+    const bmBtn = document.getElementById("tcs-bookmark-btn");
+    if (bmBtn) {
+        const isSaved = typeof window.isQuestionBookmarked === "function" && window.isQuestionBookmarked(qKey);
+        bmBtn.textContent = isSaved ? "★ Saved" : "☆ Save";
+        bmBtn.className = isSaved
+            ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer"
+            : "px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer";
+    }
+
     const qTxtBox = document.getElementById("tcs-q-text");
     const rawQHtml = (tcsState.lang === "hi" && (q.question_hi || q.question_hindi))
         ? (q.question_hi || q.question_hindi)
         : (q.question || q.question_text || "");
     qTxtBox.innerHTML = cleanQuestionHtml(rawQHtml);
 
-    // Options with A., B., C., D. labels (Screenshot 5 match)
     const optBox = document.getElementById("tcs-options-container");
     optBox.innerHTML = "";
-
-    const resp = tcsState.responses[globalIdx] || {};
-    const chosen = resp.chosenOption;
     const letters = ["A", "B", "C", "D", "E"];
 
     const opts = [
@@ -870,13 +802,14 @@ function loadQuestion(globalIdx) {
         q.option_5 ? { id: "5", text: q.option_5 } : null
     ].filter(Boolean);
 
+    const resp = tcsState.responses[globalIdx] || {};
+    const chosen = resp.chosenOption;
+
     opts.forEach((opt, oIdx) => {
         const isSel = String(chosen) === String(opt.id);
-        const selClass = isSel ? "tcs-option selected" : "tcs-option";
-        const letter = letters[oIdx] || opt.id;
         optBox.innerHTML += `
-            <div class="${selClass}" onclick="selectTcsOption('${opt.id}')">
-                <span class="tcs-opt-letter">${letter}.</span>
+            <div class="${isSel ? "tcs-option selected" : "tcs-option"}" onclick="selectTcsOption('${opt.id}')">
+                <span class="tcs-opt-letter">${letters[oIdx] || opt.id}.</span>
                 <div style="flex: 1; word-break: break-word;">${cleanQuestionHtml(opt.text || "")}</div>
             </div>`;
     });
@@ -884,27 +817,79 @@ function loadQuestion(globalIdx) {
     if (window.MathJax && MathJax.typesetPromise) {
         MathJax.typesetPromise([qTxtBox, optBox]).catch(() => {});
     }
-}
+};
+
+window.toggleCurrentQuestionBookmark = function() {
+    const q = tcsState.questions[tcsState.currentQIdx];
+    if (!q) return;
+    const qKey = `test_${tcsState.testMeta.id || tcsState.activeTestKey}_q_${q.id || tcsState.currentQIdx}`;
+    
+    const optsArr = [q.option_1 || q.opt1, q.option_2 || q.opt2, q.option_3 || q.opt3, q.option_4 || q.opt4].filter(Boolean);
+    const expText = (tcsState.lang === "hi" && (q.explanation_hi || q.solution_hi))
+        ? (q.explanation_hi || q.solution_hi)
+        : (q.solution_text || q.explanation || q.solution || "");
+
+    const isNowSaved = window.toggleBookmarkItem({
+        qKey: qKey,
+        testTitle: tcsState.testMeta.title || "Mock Test",
+        subject: q._sectionName || "Subject",
+        qNumber: tcsState.currentQIdx + 1,
+        question: q.question || q.question_text || "",
+        options: optsArr,
+        answer: String(q.answer || q.correct_option || "1"),
+        solution: expText
+    });
+
+    const bmBtn = document.getElementById("tcs-bookmark-btn");
+    if (bmBtn) {
+        bmBtn.textContent = isNowSaved ? "★ Saved" : "☆ Save";
+        bmBtn.className = isNowSaved
+            ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer"
+            : "px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer";
+    }
+};
+
+window.toggleSolutionQuestionBookmark = function() {
+    const q = tcsState.questions[tcsState.activeFullSolIdx];
+    if (!q) return;
+    const qKey = `test_${tcsState.testMeta.id || tcsState.activeTestKey}_q_${q.id || tcsState.activeFullSolIdx}`;
+    
+    const optsArr = [q.option_1 || q.opt1, q.option_2 || q.opt2, q.option_3 || q.opt3, q.option_4 || q.opt4].filter(Boolean);
+    const expText = (tcsState.lang === "hi" && (q.explanation_hi || q.solution_hi))
+        ? (q.explanation_hi || q.solution_hi)
+        : (q.solution_text || q.explanation || q.solution || "");
+
+    const isNowSaved = window.toggleBookmarkItem({
+        qKey: qKey,
+        testTitle: tcsState.testMeta.title || "Mock Test",
+        subject: q._sectionName || "Subject",
+        qNumber: tcsState.activeFullSolIdx + 1,
+        question: q.question || q.question_text || "",
+        options: optsArr,
+        answer: String(q.answer || q.correct_option || "1"),
+        solution: expText
+    });
+
+    const bmBtn = document.getElementById("fs-bookmark-btn");
+    if (bmBtn) {
+        bmBtn.textContent = isNowSaved ? "★ Saved" : "☆ Save";
+        bmBtn.className = isNowSaved
+            ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer"
+            : "px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer";
+    }
+};
 
 window.selectTcsOption = function(optId) {
     const idx = tcsState.currentQIdx;
     const prevTime = (tcsState.responses[idx] && tcsState.responses[idx].timeSpent) || 0;
-    tcsState.responses[idx] = {
-        status: "attempted",
-        chosenOption: optId,
-        timeSpent: prevTime
-    };
+    tcsState.responses[idx] = { status: "attempted", chosenOption: optId, timeSpent: prevTime };
     loadQuestion(idx);
 };
 
 window.saveAndNext = function() {
     const idx = tcsState.currentQIdx;
     const cur = tcsState.responses[idx] || { timeSpent: 0 };
-    if (cur.chosenOption) {
-        cur.status = "attempted";
-    } else {
-        cur.status = "unattempted";
-    }
+    cur.status = cur.chosenOption ? "attempted" : "unattempted";
     tcsState.responses[idx] = cur;
     nextQuestion();
 };
@@ -912,11 +897,7 @@ window.saveAndNext = function() {
 window.markForReview = function() {
     const idx = tcsState.currentQIdx;
     const cur = tcsState.responses[idx] || { timeSpent: 0 };
-    const hasAns = Boolean(cur.chosenOption);
-    tcsState.responses[idx] = {
-        ...cur,
-        status: hasAns ? "marked_attempted" : "marked"
-    };
+    tcsState.responses[idx] = { ...cur, status: cur.chosenOption ? "marked_attempted" : "marked" };
     nextQuestion();
 };
 
@@ -928,15 +909,11 @@ window.clearResponse = function() {
 };
 
 window.nextQuestion = function() {
-    if (tcsState.currentQIdx < tcsState.questions.length - 1) {
-        loadQuestion(tcsState.currentQIdx + 1);
-    }
+    if (tcsState.currentQIdx < tcsState.questions.length - 1) loadQuestion(tcsState.currentQIdx + 1);
 };
 
 window.prevQuestion = function() {
-    if (tcsState.currentQIdx > 0) {
-        loadQuestion(tcsState.currentQIdx - 1);
-    }
+    if (tcsState.currentQIdx > 0) loadQuestion(tcsState.currentQIdx - 1);
 };
 
 window.toggleTcsLangMode = function() {
@@ -951,22 +928,14 @@ window.toggleTcsLangMode = function() {
 };
 
 window.toggleTcsFullScreen = function() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-    } else if (document.exitFullscreen) {
-        document.exitFullscreen();
-    }
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    else if (document.exitFullscreen) document.exitFullscreen();
 };
 
-// =========================================================
-// QUESTION PALETTE DRAWER
-// =========================================================
 window.toggleTcsPalette = function() {
     const palette = document.getElementById("tcs-palette");
     palette.classList.toggle("show");
-    if (palette.classList.contains("show")) {
-        renderTcsAccordionGrid();
-    }
+    if (palette.classList.contains("show")) renderTcsAccordionGrid();
 };
 
 function renderTcsAccordionGrid() {
@@ -999,13 +968,10 @@ function renderTcsAccordionGrid() {
         cont.innerHTML += `
             <div class="tcs-accordion">
                 <div class="tcs-acc-header" onclick="toggleGridSec(${sIdx})">
-                    <span>${sec.name}</span>
-                    <span>▼</span>
+                    <span>${sec.name}</span><span>▼</span>
                 </div>
                 <div class="tcs-acc-stats">
-                    <span>Attempted: ${att}</span>
-                    <span>Marked: ${mar}</span>
-                    <span>Unattempted: ${una}</span>
+                    <span>Attempted: ${att}</span><span>Marked: ${mar}</span><span>Unattempted: ${una}</span>
                 </div>
                 ${gridHtml}
             </div>`;
@@ -1022,12 +988,7 @@ window.jumpToQuestion = function(globalIdx) {
     loadQuestion(globalIdx);
 };
 
-// =========================================================
-// STEP 3: SUBMIT SUMMARY SCREEN
-// =========================================================
-window.handleDynamicSubmit = function() {
-    prepareSubmit();
-};
+window.handleDynamicSubmit = function() { prepareSubmit(); };
 
 window.prepareSubmit = function() {
     document.getElementById("tcs-palette").classList.remove("show");
@@ -1055,7 +1016,6 @@ window.prepareSubmit = function() {
                 <div class="stat-row"><span>Unattempted:</span> <strong style="color:#64748b;">${una}</strong></div>
             </div>`;
     });
-
     cont.innerHTML = cardsHtml;
 };
 
@@ -1065,7 +1025,7 @@ window.closeSubmit = function() {
 };
 
 // =========================================================
-// STEP 4: RESULT & DEEP ANALYSIS SCREEN
+// SUBMIT TEST & RECORD ATTEMPT
 // =========================================================
 window.submitTest = function() {
     if (tcsState.timerInterval) clearInterval(tcsState.timerInterval);
@@ -1106,6 +1066,21 @@ window.submitTest = function() {
     maxMarks = Math.round(maxMarks);
     const accuracy = (correct + incorrect) > 0 ? Math.round((correct / (correct + incorrect)) * 100) : 0;
 
+    // SAVE ATTEMPT TO DASHBOARD HISTORY
+    const testId = tcsState.testMeta.id || tcsState.activeTestKey;
+    if (typeof window.recordUserTestAttempt === "function") {
+        window.recordUserTestAttempt(testId, {
+            title: tcsState.testMeta.title || "Mock Test",
+            seriesTitle: tcsState.activeSeriesTitle || "Paid Test Series",
+            score: score,
+            maxMarks: maxMarks,
+            correct: correct,
+            incorrect: incorrect,
+            unattempted: unattempted,
+            accuracy: accuracy
+        });
+    }
+
     document.getElementById("res-score").textContent = `${score}/${maxMarks}`;
     document.getElementById("res-correct").textContent = correct;
     document.getElementById("res-incorrect").textContent = incorrect;
@@ -1114,7 +1089,6 @@ window.submitTest = function() {
     document.getElementById("res-rank").textContent = score >= maxMarks * 0.75 ? "#12" : "#148";
     document.getElementById("res-perc").textContent = `${Math.min(99.8, Math.max(15, (score / (maxMarks || 1)) * 100 + 12)).toFixed(1)}%`;
 
-    // Comparison Table
     document.getElementById("cmp-score").textContent = score;
     document.getElementById("cmp-top").textContent = (maxMarks * 0.88).toFixed(1);
     document.getElementById("cmp-avg").textContent = (maxMarks * 0.48).toFixed(1);
@@ -1126,7 +1100,6 @@ window.submitTest = function() {
     document.getElementById("cmp-top-w").textContent = Math.round(tcsState.questions.length * 0.04);
     document.getElementById("cmp-avg-w").textContent = Math.round(tcsState.questions.length * 0.18);
 
-    // Donut Chart
     const totalQ = tcsState.questions.length || 1;
     const cDeg = (correct / totalQ) * 360;
     const wDeg = cDeg + (incorrect / totalQ) * 360;
@@ -1135,12 +1108,10 @@ window.submitTest = function() {
         donut.style.background = `conic-gradient(#4caf50 0deg ${cDeg}deg, #e53935 ${cDeg}deg ${wDeg}deg, #5c6bc0 ${wDeg}deg 360deg)`;
     }
 
-    // Time Stats Box
     document.getElementById("ts-box-corr").innerHTML = `Correct<br>${formatMMSS(timeCorr)}`;
     document.getElementById("ts-box-una").innerHTML = `Unattempted: ${formatMMSS(timeUna)}`;
     document.getElementById("ts-box-inc").innerHTML = `Incorrect<br>${formatMMSS(timeInc)}`;
 
-    // Remark Banner
     const rem = document.getElementById("dynamic-remark");
     if (rem) {
         rem.style.display = "block";
@@ -1156,7 +1127,6 @@ window.submitTest = function() {
         }
     }
 
-    // Section-wise Analysis Cards
     const sCont = document.getElementById("analysis-sections-container");
     sCont.innerHTML = "";
     tcsState.activeSections.forEach(sec => {
@@ -1200,18 +1170,13 @@ window.submitTest = function() {
     });
 };
 
-window.reAttemptTcsTest = function() {
-    window.launchTcsCbtEngine(tcsState.activeTestKey);
-};
+window.reAttemptTcsTest = function() { window.launchTcsCbtEngine(tcsState.activeTestKey); };
 
 window.exitTcsTest = function() {
     if (tcsState.timerInterval) clearInterval(tcsState.timerInterval);
     showSlide("slideExplorer");
 };
 
-// =========================================================
-// STEP 5: SOLUTIONS LIST SCREEN
-// =========================================================
 window.openSolutions = function() {
     document.getElementById("analysis-screen").classList.add("tcs-hidden");
     document.getElementById("solutions-screen").classList.remove("tcs-hidden");
@@ -1276,9 +1241,6 @@ function renderSolutionsList(filter) {
     }
 }
 
-// =========================================================
-// STEP 6: FULL SOLUTION SCREEN
-// =========================================================
 window.openFullSolution = function(idx) {
     tcsState.activeFullSolIdx = idx;
     document.getElementById("solutions-screen").classList.add("tcs-hidden");
@@ -1296,6 +1258,16 @@ function renderFullSolutionContent(idx) {
     const tcBox = document.getElementById("fs-q-time-compare");
     if (tcBox) {
         tcBox.innerHTML = `<span class="time-compare-badge"><span class="tc-you">⏱️ You: ${formatMMSS(r.timeSpent || 0)}</span></span>`;
+    }
+
+    const qKey = `test_${tcsState.testMeta.id || tcsState.activeTestKey}_q_${q.id || idx}`;
+    const bmBtn = document.getElementById("fs-bookmark-btn");
+    if (bmBtn) {
+        const isSaved = typeof window.isQuestionBookmarked === "function" && window.isQuestionBookmarked(qKey);
+        bmBtn.textContent = isSaved ? "★ Saved" : "☆ Save";
+        bmBtn.className = isSaved
+            ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer"
+            : "px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer";
     }
 
     const qTxt = (tcsState.lang === "hi" && (q.question_hi || q.question_hindi))

@@ -58,52 +58,55 @@
         <!-- SLIDE 1: MAIN APP SHELL (DASHBOARD + TABS + EXPLORER + BOOKMARKS) -->
         <section id="slideExplorer" class="slide-page active-slide">
 
-            <!-- LIVE SMART DASHBOARD CARDS -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-                <div class="bg-white/95 border-2 border-indigo-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl font-black shrink-0">🏆</div>
-                    <div class="min-w-0">
-                        <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Total Series</div>
-                        <div id="dashTotalSeries" class="text-xl sm:text-2xl font-black text-slate-900 leading-tight">0</div>
+            <!-- DASHBOARD HEADER GROUP (Auto-hides inside Test Series) -->
+            <div id="dashboardHeaderGroup">
+                <!-- LIVE SMART DASHBOARD CARDS -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                    <div class="bg-white/95 border-2 border-indigo-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl font-black shrink-0">🏆</div>
+                        <div class="min-w-0">
+                            <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Total Series</div>
+                            <div id="dashTotalSeries" class="text-xl sm:text-2xl font-black text-slate-900 leading-tight">0</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/95 border-2 border-sky-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl font-black shrink-0">📝</div>
+                        <div class="min-w-0">
+                            <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Total Tests</div>
+                            <div id="dashTotalTests" class="text-xl sm:text-2xl font-black text-slate-900 leading-tight">0</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/95 border-2 border-emerald-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl font-black shrink-0">✅</div>
+                        <div class="min-w-0">
+                            <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Attempted</div>
+                            <div id="dashAttemptedTests" class="text-xl sm:text-2xl font-black text-emerald-600 leading-tight">0</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/95 border-2 border-amber-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl font-black shrink-0">⏳</div>
+                        <div class="min-w-0">
+                            <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Remaining</div>
+                            <div id="dashRemainingTests" class="text-xl sm:text-2xl font-black text-amber-600 leading-tight">0</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white/95 border-2 border-sky-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl font-black shrink-0">📝</div>
-                    <div class="min-w-0">
-                        <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Total Tests</div>
-                        <div id="dashTotalTests" class="text-xl sm:text-2xl font-black text-slate-900 leading-tight">0</div>
-                    </div>
+                <!-- APP NAVIGATION TABS (TESTS | DASHBOARD | BOOKMARKS) -->
+                <div class="flex items-center gap-2 bg-white/90 p-1.5 rounded-2xl border-2 border-sky-200 shadow-sm mb-5 overflow-x-auto">
+                    <button id="appTabTests" onclick="switchAppTab('tests')" class="flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow border-0 cursor-pointer whitespace-nowrap transition-all">
+                        🏆 Test Series
+                    </button>
+                    <button id="appTabDashboard" onclick="switchAppTab('dashboard')" class="flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs text-slate-700 bg-transparent hover:bg-sky-50 border-0 cursor-pointer whitespace-nowrap transition-all">
+                        📊 My Progress
+                    </button>
+                    <button id="appTabBookmarks" onclick="switchAppTab('bookmarks')" class="flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs text-slate-700 bg-transparent hover:bg-sky-50 border-0 cursor-pointer whitespace-nowrap transition-all">
+                        🔖 Bookmarks (<span id="bookmarkCountBadge">0</span>)
+                    </button>
                 </div>
-
-                <div class="bg-white/95 border-2 border-emerald-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl font-black shrink-0">✅</div>
-                    <div class="min-w-0">
-                        <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Attempted</div>
-                        <div id="dashAttemptedTests" class="text-xl sm:text-2xl font-black text-emerald-600 leading-tight">0</div>
-                    </div>
-                </div>
-
-                <div class="bg-white/95 border-2 border-amber-100 rounded-2xl p-3.5 shadow-sm flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl font-black shrink-0">⏳</div>
-                    <div class="min-w-0">
-                        <div class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Remaining</div>
-                        <div id="dashRemainingTests" class="text-xl sm:text-2xl font-black text-amber-600 leading-tight">0</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- APP NAVIGATION TABS (TESTS | DASHBOARD | BOOKMARKS) -->
-            <div class="flex items-center gap-2 bg-white/90 p-1.5 rounded-2xl border-2 border-sky-200 shadow-sm mb-5 overflow-x-auto">
-                <button id="appTabTests" onclick="switchAppTab('tests')" class="flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow border-0 cursor-pointer whitespace-nowrap transition-all">
-                    🏆 Test Series
-                </button>
-                <button id="appTabDashboard" onclick="switchAppTab('dashboard')" class="flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs text-slate-700 bg-transparent hover:bg-sky-50 border-0 cursor-pointer whitespace-nowrap transition-all">
-                    📊 My Progress
-                </button>
-                <button id="appTabBookmarks" onclick="switchAppTab('bookmarks')" class="flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs text-slate-700 bg-transparent hover:bg-sky-50 border-0 cursor-pointer whitespace-nowrap transition-all">
-                    🔖 Bookmarks (<span id="bookmarkCountBadge">0</span>)
-                </button>
             </div>
 
             <!-- VIEW A: TEST SERIES, FOLDERS & TESTS EXPLORER -->
@@ -159,12 +162,12 @@
                     <div>
                         <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px] uppercase">Revision Vault</span>
                         <h2 class="text-xl sm:text-2xl font-black text-slate-900 mt-1">🔖 Saved Bookmarked Questions</h2>
-                        <p class="text-xs font-semibold text-slate-600 mt-0.5">Live test ya solutions ke dauran bookmark kiye gaye sabhi important questions.</p>
+                        <p class="text-xs font-semibold text-slate-600 mt-0.5">Test ya solutions ke dauran save kiye gaye sabhi important questions.</p>
                     </div>
                     <button onclick="clearAllBookmarks()" class="btn-nav bg-rose-600 text-white border-0 text-xs">🗑 Clear All</button>
                 </div>
 
-                <div id="bookmarksListContainer" class="space-y-4"></div>
+                <div id="bookmarksListContainer" class="space-y-3"></div>
             </div>
 
         </section>
@@ -344,11 +347,6 @@
                             </div>
                         </div>
 
-                        <div class="a-card" id="weak-areas-card" style="display:none; background:#ffebee; border: 1px solid #ffcdd2;">
-                            <h3 style="color:#c62828; margin-bottom:10px; text-align:center; font-weight: 800;">⚠️ Weak Subjects to Improve</h3>
-                            <ul id="weak-areas-list" style="color:#b71c1c; font-size:14px; padding-left:20px; line-height:1.6;"></ul>
-                        </div>
-
                         <div class="sec-title">Section Wise Stats</div>
                         <div id="analysis-sections-container"></div>
                         
@@ -407,7 +405,28 @@
             </div>
         </section>
 
-        <!-- SLIDE 3: PDF VIEWER -->
+        <!-- SLIDE 3: BOOKMARK FULL SCREEN VIEWER -->
+        <section id="slideBookmarkViewer" class="slide-page hidden-slide bg-slate-50 min-h-screen z-50">
+            <div class="sky-nav sticky top-0 z-40 px-3 py-3 flex justify-between items-center bg-indigo-700 text-white shadow-md">
+                <button onclick="closeBookmarkViewer()" class="font-bold text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg border-0 cursor-pointer text-white">⬅ Back</button>
+                <div class="font-black text-base">🔖 Saved Bookmark</div>
+                <button onclick="removeCurrentBookmarkFullScreen()" class="font-bold text-[11px] bg-rose-600 px-2.5 py-1.5 rounded-lg border-0 cursor-pointer text-white">🗑 Remove</button>
+            </div>
+            
+            <div class="max-w-4xl mx-auto p-4 sm:p-6 pb-24" id="bookmarkViewerContent">
+                <!-- Content injected via JS -->
+            </div>
+
+            <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 flex justify-between items-center z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+                <div class="max-w-4xl mx-auto w-full flex justify-between items-center px-2">
+                    <button onclick="prevBookmark()" id="bmkBtnPrev" class="btn-watch bg-slate-600 text-white px-5 border-0 rounded-xl font-bold py-2.5 shadow">⬅ Previous</button>
+                    <span id="bookmarkCounter" class="text-xs font-black text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-200">1 / 5</span>
+                    <button onclick="nextBookmark()" id="bmkBtnNext" class="btn-watch bg-indigo-600 text-white px-6 border-0 rounded-xl font-bold py-2.5 shadow">Next ➔</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 4: PDF VIEWER (FOR TEST PAPER PDFS) -->
         <section id="slidePdf" class="slide-page hidden-slide">
             <div class="sky-card p-4">
                 <div class="flex flex-wrap justify-between items-center gap-2 mb-3 pb-2 border-b border-sky-200">
@@ -491,7 +510,7 @@
             <!-- Collapsible My Token Manager Inside Profile -->
             <div id="profileTokenManagerBox" class="hidden mt-4 pt-4 border-t border-slate-200">
                 <div class="bg-sky-50 border-2 border-sky-200 rounded-2xl p-4 mb-3">
-                    <h4 class="font-extrabold text-xs text-slate-800 uppercase mb-2.5">➕ Add / Update Personal Token (<span id="tokCountBadge">0</span>)</h4>
+                    <h4 class="font-extrabold text-xs text-slate-800 uppercase mb-2.5">➕ Add / Update Personal Token (<span id="tokCountBadgeModal">0</span>)</h4>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
                         <input id="newTokLabel" type="text" placeholder="Account Label / Name" class="w-full bg-white border border-sky-300 rounded-xl p-2 text-xs text-slate-900 outline-none">
                         <input id="newTokUid" type="text" placeholder="User-ID (Auto if blank)" class="w-full bg-white border border-sky-300 rounded-xl p-2 text-xs text-slate-900 outline-none">

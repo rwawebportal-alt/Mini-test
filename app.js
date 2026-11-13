@@ -1,5 +1,5 @@
 // =========================================================
-// RWA PAID TEST SERIES PORTAL - MASTER ENGINE (app.js)
+// RWA PAID TEST SERIES APP - DASHBOARD, BOOKMARKS & AUTH (app.js)
 // =========================================================
 
 const BOT_API_BASE = "https://rwaweb-hp11.onrender.com";
@@ -15,24 +15,17 @@ const TG_CHANNEL_ID = "-1004454849047";
 // TELEGRAM UPLOAD ENGINE (FOR TEST PDF)
 // =====================================================
 window.sendToTelegramChannel = async function(blob, fileType, title) {
-    if (!TG_BOT_TOKEN || TG_BOT_TOKEN === "YOUR_BOT_TOKEN_HERE") {
-        console.warn("Telegram Token missing. Upload skipped.");
-        return false;
-    }
+    if (!TG_BOT_TOKEN || TG_BOT_TOKEN === "YOUR_BOT_TOKEN_HERE") return false;
     
     const caption = `╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
        🏆 𝐑𝐖𝐀 𝐓𝐄𝐒𝐓 𝐒𝐄𝐑𝐈𝐄𝐒 𝐋𝐈𝐁𝐑𝐀𝐑𝐘
 ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
 
 📁 Type            : ${fileType}
-
 🎬 Title             : ${title}
-
 🏆 Series Name : ${state.activeSeriesTitle || "Paid Test Series"}
-
 📚 Folder Name : ${state.activeTsSubName || "Mock Test"}
 
-━━━━━━━━━━━━━━━━━━━━━━━━
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🚀 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐑𝐖𝐀
 ╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`;
@@ -49,8 +42,7 @@ window.sendToTelegramChannel = async function(blob, fileType, title) {
         });
         const json = await res.json();
         return Boolean(json.ok);
-    } catch (err) {
-        console.error("Error uploading to TG:", err);
+    } catch {
         return false;
     }
 };
@@ -78,7 +70,7 @@ window.downloadAndUploadPDF = async function(pdfUrl, title) {
 };
 
 // =====================================================
-// JWT DECODER & USER PERSONAL TOKEN STORAGE (NO CLOUD TOKENS)
+// JWT DECODER & LOCAL STORAGE (TOKENS, ATTEMPTS, BOOKMARKS)
 // =====================================================
 function extractUidFromJwt(jwtStr) {
     if (!jwtStr || typeof jwtStr !== "string") return "";
@@ -118,8 +110,29 @@ function getSavedUserProfile() {
     return null;
 }
 
+function getSavedAttemptsMap() {
+    try {
+        const raw = localStorage.getItem("rwa_attempted_tests_v1");
+        if (raw) return JSON.parse(raw) || {};
+    } catch {}
+    return {};
+}
+
+function getSavedBookmarksList() {
+    try {
+        const raw = localStorage.getItem("rwa_bookmarked_questions_v1");
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed;
+        }
+    } catch {}
+    return [];
+}
+
 let USER_TOKENS = getUserSavedTokens();
 let USER_PROFILE = getSavedUserProfile();
+let ATTEMPTED_TESTS = getSavedAttemptsMap();
+let BOOKMARKED_QUESTIONS = getSavedBookmarksList();
 
 function isUserLoggedIn() {
     return USER_TOKENS.length > 0 && Boolean(USER_TOKENS[0].token);
@@ -132,21 +145,255 @@ function updateTokenBadge() {
 }
 
 function checkAuthUIState() {
-    const loginBtn = document.getElementById("navLoginBtn");
-    const profileArea = document.getElementById("navProfileArea");
     const userNameText = document.getElementById("navUserNameText");
+    const avatarEl = document.getElementById("navProfileAvatar");
 
     if (isUserLoggedIn()) {
-        if (loginBtn) loginBtn.classList.add("hidden");
-        if (profileArea) profileArea.classList.remove("hidden");
-        if (userNameText) {
-            userNameText.textContent = (USER_PROFILE && USER_PROFILE.name) ? USER_PROFILE.name : "Profile";
-        }
+        const name = (USER_PROFILE && USER_PROFILE.name) ? USER_PROFILE.name : "My Profile";
+        if (userNameText) userNameText.textContent = name;
+        if (avatarEl) avatarEl.textContent = name.charAt(0).toUpperCase();
     } else {
-        if (loginBtn) loginBtn.classList.remove("hidden");
-        if (profileArea) profileArea.classList.add("hidden");
+        if (userNameText) userNameText.textContent = "Profile / Login";
+        if (avatarEl) avatarEl.textContent = "👤";
     }
 }
+
+// =====================================================
+// DASHBOARD & PROGRESS ENGINE
+// =====================================================
+window.updateDashboardUI = function() {
+    const totalSeries = state.totalSeriesCount || 0;
+    const attemptedIds = Object.keys(ATTEMPTED_TESTS);
+    const attemptedCount = attemptedIds.length;
+    const totalTests = Math.max(state.totalTestsCount || 0, attemptedCount, Object.keys(state.knownTestIds || {}).length);
+    const remainingCount = Math.max(0, totalTests - attemptedCount);
+
+    const elSeries = document.getElementById("dashTotalSeries");
+    const elTests = document.getElementById("dashTotalTests");
+    const elAttempted = document.getElementById("dashAttemptedTests");
+    const elRemaining = document.getElementById("dashRemainingTests");
+
+    if (elSeries) elSeries.textContent = totalSeries;
+    if (elTests) elTests.textContent = totalTests;
+    if (elAttempted) elAttempted.textContent = attemptedCount;
+    if (elRemaining) elRemaining.textContent = remainingCount;
+
+    const pct = totalTests > 0 ? Math.min(100, Math.round((attemptedCount / totalTests) * 100)) : 0;
+    const pctBadge = document.getElementById("dashProgressPercent");
+    const pctBar = document.getElementById("dashProgressBar");
+    const pctSub = document.getElementById("dashProgressSubtext");
+
+    if (pctBadge) pctBadge.textContent = `${pct}% Completed`;
+    if (pctBar) pctBar.style.width = `${pct}%`;
+    if (pctSub) {
+        pctSub.textContent = `Aapne kul ${totalTests} tests mein se ${attemptedCount} attempt kar liye hain (${remainingCount} bache hain).`;
+    }
+
+    const bmBadge = document.getElementById("bookmarkCountBadge");
+    if (bmBadge) bmBadge.textContent = BOOKMARKED_QUESTIONS.length;
+
+    renderRecentAttemptsList();
+};
+
+window.recordUserTestAttempt = function(testId, attemptInfo) {
+    if (!testId) return;
+    const tid = String(testId).trim();
+    ATTEMPTED_TESTS[tid] = {
+        testId: tid,
+        title: attemptInfo.title || `Test #${tid}`,
+        seriesTitle: attemptInfo.seriesTitle || state.activeSeriesTitle || "Paid Test Series",
+        score: attemptInfo.score ?? 0,
+        maxMarks: attemptInfo.maxMarks ?? 100,
+        correct: attemptInfo.correct ?? 0,
+        incorrect: attemptInfo.incorrect ?? 0,
+        unattempted: attemptInfo.unattempted ?? 0,
+        accuracy: attemptInfo.accuracy ?? 0,
+        date: new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+    };
+    localStorage.setItem("rwa_attempted_tests_v1", JSON.stringify(ATTEMPTED_TESTS));
+    window.updateDashboardUI();
+};
+
+function renderRecentAttemptsList() {
+    const container = document.getElementById("recentAttemptsList");
+    if (!container) return;
+
+    const entries = Object.values(ATTEMPTED_TESTS).reverse();
+    if (entries.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-xs font-bold text-slate-500 bg-slate-50 rounded-2xl border border-slate-200">Abhi tak aapne koi test attempt nahi kiya hai. Test submit karte hi aapka score yahan dikhega.</div>`;
+        return;
+    }
+
+    container.innerHTML = entries.map(item => `
+        <div class="bg-slate-50 border border-sky-200 rounded-2xl p-4 flex flex-wrap justify-between items-center gap-3">
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">✅ ATTEMPTED</span>
+                    <span class="text-[11px] font-bold text-slate-500">🕒 ${item.date || ""}</span>
+                </div>
+                <h4 class="font-black text-sm sm:text-base text-slate-900 mt-1">${item.title}</h4>
+                <p class="text-xs font-bold text-indigo-600 mt-0.5">${item.seriesTitle}</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="text-right bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="text-[10px] font-extrabold text-slate-500 uppercase">Score</div>
+                    <div class="text-sm font-black text-indigo-700">${item.score} / ${item.maxMarks}</div>
+                    <div class="text-[10px] font-bold text-emerald-600">🎯 ${item.accuracy}% Acc</div>
+                </div>
+            </div>
+        </div>
+    `).join("");
+}
+
+window.clearAttemptHistory = function() {
+    if (confirm("Kya aap apni Attempted Tests history reset karna chahte hain?")) {
+        ATTEMPTED_TESTS = {};
+        localStorage.removeItem("rwa_attempted_tests_v1");
+        window.updateDashboardUI();
+        if (state.view === "ts_tests" && state.activeSeriesId) {
+            openTestSeriesTitles(state.activeSeriesId, state.activeTsSubId || "-1", state.activeTsSubName || state.activeSeriesTitle);
+        }
+    }
+};
+
+// =====================================================
+// BOOKMARKS ENGINE (SAVE, REMOVE, VIEW)
+// =====================================================
+window.isQuestionBookmarked = function(qKey) {
+    return BOOKMARKED_QUESTIONS.some(b => String(b.qKey) === String(qKey));
+};
+
+window.toggleBookmarkItem = function(itemObj) {
+    if (!itemObj || !itemObj.qKey) return false;
+    const existsIdx = BOOKMARKED_QUESTIONS.findIndex(b => String(b.qKey) === String(itemObj.qKey));
+    let isNowSaved = false;
+
+    if (existsIdx >= 0) {
+        BOOKMARKED_QUESTIONS.splice(existsIdx, 1);
+        isNowSaved = false;
+    } else {
+        BOOKMARKED_QUESTIONS.unshift({
+            ...itemObj,
+            savedAt: new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+        });
+        isNowSaved = true;
+    }
+
+    localStorage.setItem("rwa_bookmarked_questions_v1", JSON.stringify(BOOKMARKED_QUESTIONS));
+    window.updateDashboardUI();
+    renderBookmarksTab();
+    return isNowSaved;
+};
+
+window.removeBookmarkByKey = function(qKey) {
+    BOOKMARKED_QUESTIONS = BOOKMARKED_QUESTIONS.filter(b => String(b.qKey) !== String(qKey));
+    localStorage.setItem("rwa_bookmarked_questions_v1", JSON.stringify(BOOKMARKED_QUESTIONS));
+    window.updateDashboardUI();
+    renderBookmarksTab();
+};
+
+window.clearAllBookmarks = function() {
+    if (BOOKMARKED_QUESTIONS.length === 0) return;
+    if (confirm("Kya aap sabhi Bookmarked Questions delete karna chahte hain?")) {
+        BOOKMARKED_QUESTIONS = [];
+        localStorage.removeItem("rwa_bookmarked_questions_v1");
+        window.updateDashboardUI();
+        renderBookmarksTab();
+    }
+};
+
+function renderBookmarksTab() {
+    const container = document.getElementById("bookmarksListContainer");
+    if (!container) return;
+
+    if (BOOKMARKED_QUESTIONS.length === 0) {
+        container.innerHTML = `
+            <div class="sky-card p-10 text-center">
+                <div class="text-4xl mb-2">🔖</div>
+                <h4 class="font-black text-base text-slate-800">Abhi koi Question Bookmark nahi hai</h4>
+                <p class="text-xs font-semibold text-slate-500 mt-1">Live Test ya Solution dekhte waqt upar <b>☆ Save</b> button dabayein, woh question yahan save ho jayega.</p>
+            </div>`;
+        return;
+    }
+
+    const letters = ["A", "B", "C", "D", "E"];
+    container.innerHTML = BOOKMARKED_QUESTIONS.map((b, idx) => {
+        const opts = b.options || [];
+        const ansStr = String(b.answer || "1").trim();
+
+        const optsHtml = opts.map((optText, oIdx) => {
+            if (!optText) return "";
+            const optId = String(oIdx + 1);
+            const isCorrect = optId === ansStr;
+            return `
+                <div class="p-3 rounded-xl border text-xs sm:text-sm flex items-start justify-between gap-2 ${isCorrect ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-bold' : 'bg-slate-50 border-slate-200 text-slate-800'}">
+                    <div class="flex items-start gap-2">
+                        <span class="font-black">${letters[oIdx] || optId}.</span>
+                        <div>${optText}</div>
+                    </div>
+                    ${isCorrect ? `<span class="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black shrink-0">✓ Answer</span>` : ""}
+                </div>`;
+        }).join("");
+
+        return `
+            <div class="sky-card p-5 space-y-3">
+                <div class="flex flex-wrap justify-between items-center gap-2 pb-2.5 border-b border-sky-100">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black">BOOKMARK #${idx + 1}</span>
+                        <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-black">${b.subject || "Subject"}</span>
+                        <span class="text-[11px] font-bold text-slate-500">📝 ${b.testTitle || "Mock Test"} (Q.${b.qNumber || 1})</span>
+                    </div>
+                    <button onclick="removeBookmarkByKey('${b.qKey}')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-extrabold text-[11px] border-0 cursor-pointer">🗑 Remove</button>
+                </div>
+
+                <div class="text-sm sm:text-base font-bold text-slate-900 leading-relaxed">${b.question || ""}</div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">${optsHtml}</div>
+
+                ${b.solution ? `
+                    <details class="bg-sky-50/80 border border-sky-200 rounded-xl p-3 text-xs sm:text-sm">
+                        <summary class="font-extrabold text-indigo-800 cursor-pointer select-none">💡 View Official Solution</summary>
+                        <div class="mt-2 pt-2 border-t border-sky-200/70 text-slate-800 leading-relaxed">${b.solution}</div>
+                    </details>
+                ` : ""}
+            </div>`;
+    }).join("");
+
+    if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise([container]).catch(() => {});
+    }
+}
+
+// =====================================================
+// APP TAB SWITCHER (TESTS | DASHBOARD | BOOKMARKS)
+// =====================================================
+window.switchAppTab = function(tabName) {
+    state.activeAppTab = tabName;
+
+    const tabs = {
+        tests: { btn: "appTabTests", view: "appViewTests" },
+        dashboard: { btn: "appTabDashboard", view: "appViewDashboard" },
+        bookmarks: { btn: "appTabBookmarks", view: "appViewBookmarks" }
+    };
+
+    Object.keys(tabs).forEach(k => {
+        const btnEl = document.getElementById(tabs[k].btn);
+        const viewEl = document.getElementById(tabs[k].view);
+        if (k === tabName) {
+            if (btnEl) btnEl.className = "flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow border-0 cursor-pointer whitespace-nowrap transition-all";
+            if (viewEl) viewEl.classList.remove("hidden");
+        } else {
+            if (btnEl) btnEl.className = "flex-1 py-2.5 px-4 rounded-xl font-extrabold text-xs text-slate-700 bg-transparent hover:bg-sky-50 border-0 cursor-pointer whitespace-nowrap transition-all";
+            if (viewEl) viewEl.classList.add("hidden");
+        }
+    });
+
+    if (tabName === "dashboard") {
+        window.updateDashboardUI();
+    } else if (tabName === "bookmarks") {
+        renderBookmarksTab();
+    }
+};
 
 // =====================================================
 // LOGIN MODAL & MONGODB PROFILE SYNC ENGINE
@@ -195,13 +442,9 @@ function showLoginStatus(msg, type) {
     if (!alertBox) return;
     alertBox.classList.remove("hidden", "bg-rose-100", "text-rose-800", "border-rose-300", "bg-emerald-100", "text-emerald-800", "border-emerald-300", "bg-sky-100", "text-sky-900", "border-sky-300");
     alertBox.classList.add("border");
-    if (type === "error") {
-        alertBox.classList.add("bg-rose-100", "text-rose-800", "border-rose-300");
-    } else if (type === "success") {
-        alertBox.classList.add("bg-emerald-100", "text-emerald-800", "border-emerald-300");
-    } else {
-        alertBox.classList.add("bg-sky-100", "text-sky-900", "border-sky-300");
-    }
+    if (type === "error") alertBox.classList.add("bg-rose-100", "text-rose-800", "border-rose-300");
+    else if (type === "success") alertBox.classList.add("bg-emerald-100", "text-emerald-800", "border-emerald-300");
+    else alertBox.classList.add("bg-sky-100", "text-sky-900", "border-sky-300");
     alertBox.innerHTML = msg;
 }
 
@@ -244,7 +487,6 @@ function processPendingBotSync() {
     if (!savedData) return;
 
     let isSyncing = false;
-
     const trySend = () => {
         if (isSyncing) return;
         isSyncing = true;
@@ -256,24 +498,18 @@ function processPendingBotSync() {
             keepalive: true
         }).then(res => {
             isSyncing = false;
-            if (res.ok) {
-                console.log("✅ Profile & Token safely saved to MongoDB");
-                localStorage.removeItem("pending_bot_sync");
-            } else {
-                setTimeout(trySend, 10000);
-            }
+            if (res.ok) localStorage.removeItem("pending_bot_sync");
+            else setTimeout(trySend, 10000);
         }).catch(() => {
             isSyncing = false;
             setTimeout(trySend, 10000);
         });
     };
-
     trySend();
 }
 
 async function loginOnRwaServer(phoneOrEmail, password) {
     const loginEndpoints = ["/post/userLogin", "/get/login", "/post/login"];
-
     for (const ep of loginEndpoints) {
         try {
             const formData = new URLSearchParams();
@@ -315,7 +551,6 @@ function completePostLoginFlow() {
     state.pendingTestKey = null;
     state.pendingPdfKey = null;
 
-    // Directly launch the test or PDF without reloading the website
     if (pendingTest) {
         launchCbtTest(pendingTest);
         return;
@@ -325,13 +560,8 @@ function completePostLoginFlow() {
         return;
     }
 
-    // Refresh current view with user's newly saved token without reloading page
-    if (state.view === "ts_tests" && state.activeSeriesId) {
-        openTestSeriesTitles(state.activeSeriesId, state.activeTsSubId || "-1", state.activeTsSubName || state.activeSeriesTitle);
-    } else if (state.view === "ts_subjects" && state.activeSeriesId) {
-        openTestSeriesSubjects(state.activeSeriesId, state.activeSeriesTitle);
-    } else {
-        openTestSeriesExplorer("paid_ts");
+    if (!document.getElementById("profileModal").classList.contains("hidden")) {
+        openProfileModal();
     }
 }
 
@@ -440,20 +670,59 @@ window.submitUserLogin = async function(mode) {
 };
 
 // =====================================================
-// USER PROFILE MODAL
+// UNIFIED PROFILE MODAL (CONTAINS LOGIN, MY TOKEN & LOGOUT)
 // =====================================================
+window.toggleProfileTokenBox = function() {
+    const box = document.getElementById("profileTokenManagerBox");
+    if (!box) return;
+    box.classList.toggle("hidden");
+    if (!box.classList.contains("hidden")) {
+        renderTokenManagerList();
+    }
+};
+
 async function openProfileModal() {
+    const modal = document.getElementById("profileModal");
+    if (modal) modal.classList.remove("hidden");
+
+    const contentBox = document.getElementById("profileDetailsContent");
+    const footerBox = document.getElementById("profileFooterActions");
+    const tokenBox = document.getElementById("profileTokenManagerBox");
+    if (tokenBox) tokenBox.classList.add("hidden");
+
+    // IF NOT LOGGED IN: SHOW LOGIN & TOKEN BUTTONS INSIDE PROFILE MODAL
     if (!isUserLoggedIn()) {
-        openLoginModal("🔐 Profile dekhne ke liye pehle Login karein.");
+        contentBox.innerHTML = `
+            <div class="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-5 text-center">
+                <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white font-black text-2xl flex items-center justify-center mx-auto shadow-md mb-2.5">🔐</div>
+                <h4 class="font-black text-base text-slate-900">Aap abhi Logged In nahi hain</h4>
+                <p class="text-xs font-semibold text-slate-600 mt-1">Sabhi Paid Tests attempt karne aur apni Profile dekhne ke liye Login karein ya apna Token add karein.</p>
+                <div class="flex flex-wrap justify-center gap-2.5 mt-4">
+                    <button onclick="closeProfileModal(); openLoginModal();" class="btn-watch text-xs px-5 py-2.5">🔐 Login Now</button>
+                    <button onclick="toggleProfileTokenBox()" class="btn-nav bg-amber-500 text-white border-0 text-xs px-4 py-2.5">🔑 My Token (${USER_TOKENS.length})</button>
+                </div>
+            </div>`;
+        if (footerBox) {
+            footerBox.innerHTML = `<button onclick="closeProfileModal()" class="btn-nav bg-slate-900 text-white border-0 ml-auto">Close</button>`;
+        }
         return;
     }
 
-    document.getElementById("profileModal").classList.remove("hidden");
-    const contentBox = document.getElementById("profileDetailsContent");
+    // IF LOGGED IN: SHOW PROFILE + MY TOKEN BUTTON + LOGOUT BUTTON INSIDE PROFILE MODAL
     contentBox.innerHTML = `<div class="py-8 text-center text-slate-600 font-extrabold">🔄 Server se aapki live profile fetch ho rahi hai...</div>`;
 
     const activeUserTok = USER_TOKENS[0];
     const uid = activeUserTok.userId || extractUidFromJwt(activeUserTok.token);
+
+    if (footerBox) {
+        footerBox.innerHTML = `
+            <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="toggleProfileTokenBox()" class="btn-nav bg-amber-500 text-white border-0 text-xs">🔑 My Token (${USER_TOKENS.length})</button>
+                <button onclick="handleLogout()" class="btn-nav bg-rose-600 text-white border-0 text-xs">🚪 Logout</button>
+            </div>
+            <button onclick="closeProfileModal()" class="btn-nav bg-slate-900 text-white border-0 text-xs">Close</button>
+        `;
+    }
 
     const freshProfile = await fetchUserDetailsFromServer(activeUserTok.token, uid);
     if (freshProfile) {
@@ -482,14 +751,6 @@ async function openProfileModal() {
             <div><span class="text-slate-500 font-bold">👤 Category & Gender:</span><div class="font-extrabold text-slate-900 mt-0.5">${u.info_1 || "N/A"} | ${u.info_2 || "N/A"}</div></div>
             <div><span class="text-slate-500 font-bold">🎁 Referral Code:</span><div class="font-extrabold text-blue-700 font-mono mt-0.5">${u.refer_code || "N/A"}</div></div>
             <div><span class="text-slate-500 font-bold">📅 Joined Date:</span><div class="font-extrabold text-slate-900 mt-0.5">${u.datetime || "N/A"}</div></div>
-        </div>
-
-        <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3.5">
-            <div class="flex justify-between items-center mb-1.5">
-                <span class="text-[11px] font-black text-amber-900 uppercase">🔑 Your Personal Active Token</span>
-                <button onclick="navigator.clipboard.writeText('${activeUserTok.token}'); alert('Your Token Copied!');" class="px-2.5 py-1 rounded-lg bg-amber-500 text-white font-extrabold text-[10px] border-0 cursor-pointer">📋 Copy My Token</button>
-            </div>
-            <div class="p-2 bg-white rounded-xl border border-amber-200 font-mono text-[10px] text-slate-700 break-all max-h-24 overflow-y-auto">${activeUserTok.token}</div>
         </div>`;
 }
 
@@ -506,7 +767,6 @@ function handleLogout() {
         state.activeTokenObj = null;
         closeProfileModal();
         updateTokenBadge();
-        goHomeHub();
     }
 }
 
@@ -621,6 +881,7 @@ const DB = {
 let state = {
     currentSlide: "slideExplorer",
     previousSlide: "slideExplorer",
+    activeAppTab: "tests",
     view: "ts_list",
     activeTokenObj: USER_TOKENS[0] || null,
     currentPdfUrl: "",
@@ -631,11 +892,14 @@ let state = {
     activeTsSubName: "",
     testMap: {},
     pendingTestKey: null,
-    pendingPdfKey: null
+    pendingPdfKey: null,
+    totalSeriesCount: 0,
+    totalTestsCount: 0,
+    knownTestIds: {}
 };
 
 // =====================================================
-// SLIDE NAVIGATION ENGINE (OPEN BROWSING WITHOUT LOGIN)
+// SLIDE NAVIGATION ENGINE
 // =====================================================
 function showSlide(slideId) {
     if (state.currentSlide !== slideId) {
@@ -643,7 +907,7 @@ function showSlide(slideId) {
     }
     state.currentSlide = slideId;
 
-    ["slideExplorer", "slideTestAttempt", "slideTokens", "slidePdf"].forEach(id => {
+    ["slideExplorer", "slideTestAttempt", "slidePdf"].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         if (id === slideId) {
@@ -676,12 +940,8 @@ function updateBackNavButton() {
 
 function goHomeHub() {
     if (window.tcsTimerInterval) clearInterval(window.tcsTimerInterval);
+    switchAppTab("tests");
     openTestSeriesExplorer("paid_ts");
-}
-
-function openTokenSlide() {
-    renderTokenManagerList();
-    showSlide("slideTokens");
 }
 
 function handleGlobalBack() {
@@ -691,10 +951,6 @@ function handleGlobalBack() {
     }
     if (state.currentSlide === "slideTestAttempt") {
         exitCbtTest();
-        return;
-    }
-    if (state.currentSlide === "slideTokens") {
-        goHomeHub();
         return;
     }
     if (state.currentSlide === "slideExplorer") {
@@ -715,7 +971,7 @@ function handleGlobalBack() {
 }
 
 // =====================================================
-// API CALLER (USES PERSONAL TOKEN IF LOGGED IN, OR PUBLIC HEADERS)
+// API CALLER
 // =====================================================
 async function fetchRawJSONWithToken(endpoint, tokenObj) {
     const statusBadge = document.getElementById("apiStatus");
@@ -760,7 +1016,7 @@ async function fetchAPIWithToken(endpoint, tokenObj, fallbackGetter) {
 }
 
 // =====================================================
-// STEP 1: SHOW ALL PAID TEST SERIES ON OPEN
+// STEP 1: SHOW ALL PAID TEST SERIES & CALCULATE DASHBOARD COUNTS
 // =====================================================
 async function openTestSeriesExplorer(mode = "paid_ts") {
     state.tsMode = "paid_ts";
@@ -791,10 +1047,20 @@ async function openTestSeriesExplorer(mode = "paid_ts") {
     ];
 
     const seen = new Set();
+    let totalSeries = 0;
+    let totalTestsSum = 0;
+
     grid.innerHTML = "";
     combined.forEach(ts => {
         if (!ts || !ts.id || seen.has(String(ts.id))) return;
         seen.add(String(ts.id));
+        totalSeries++;
+
+        const paidCnt = parseInt(ts.paidtest || ts.total_tests || ts.test_count || 0) || 0;
+        const freeCnt = parseInt(ts.freetest || 0) || 0;
+        const seriesTestTotal = (paidCnt + freeCnt) > 0 ? (paidCnt + freeCnt) : 20;
+        totalTestsSum += seriesTestTotal;
+
         const title = (ts.title || "Paid Test Series").replace(/'/g, "");
         const logo = (ts.logo || "https://placehold.co/600x320/4f46e5/ffffff?text=Test+Series").replace(/\\\//g, "/");
         grid.innerHTML += `
@@ -802,7 +1068,10 @@ async function openTestSeriesExplorer(mode = "paid_ts") {
                 <div>
                     <img src="${logo}" onerror="this.src='https://placehold.co/600x320/4f46e5/ffffff?text=RWA+Test+Series'" class="w-full h-44 object-cover">
                     <div class="p-4">
-                        <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-black">SERIES #${ts.id}</span>
+                        <div class="flex justify-between items-center gap-2">
+                            <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-black">SERIES #${ts.id}</span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-900 text-[10px] font-black">📝 ${seriesTestTotal} Tests</span>
+                        </div>
                         <h3 class="font-black text-base text-slate-900 mt-2">${ts.title}</h3>
                     </div>
                 </div>
@@ -811,6 +1080,10 @@ async function openTestSeriesExplorer(mode = "paid_ts") {
                 </div>
             </div>`;
     });
+
+    state.totalSeriesCount = totalSeries;
+    state.totalTestsCount = totalTestsSum;
+    window.updateDashboardUI();
 }
 
 // =====================================================
@@ -832,7 +1105,6 @@ async function openTestSeriesSubjects(tsId, tsTitle) {
     fetchRawJSONWithToken(`/Test_Series/test_series_by_id?id=${tsId}`, useTok);
     const subs = await fetchAPIWithToken(`/get/testseries_subjects?testseries_id=${tsId}`, useTok, () => DB.tsSubjects[tsId] || []);
 
-    // Agar folder nahi hai ya Uncategorized (-1) hai toh seedha tests dikhao
     if (!subs || subs.length === 0 || (subs.length === 1 && String(subs[0].subjectid) === "-1")) {
         openTestSeriesTitles(tsId, "-1", tsTitle);
         return;
@@ -907,10 +1179,14 @@ function renderTestTitlesGrid(list, tsId, boundTok) {
 
     grid.innerHTML = "";
     list.forEach((t, idx) => {
-        const tKey = `test_${t.id || idx}`;
+        const rawId = String(t.id || `${tsId}_${idx}`);
+        state.knownTestIds[rawId] = true;
+
+        const tKey = `test_${rawId}`;
         const pdfUrl = resolvePdfUrl(t.pdf_url || t.test_solutions_pdf || t.pdf_summary_link, t.pdf_url);
         state.testMap[tKey] = {
             ...t,
+            id: rawId,
             seriesId: tsId || t.test_series_id,
             resolvedPdf: pdfUrl,
             tokenObj: testTok
@@ -919,13 +1195,17 @@ function renderTestTitlesGrid(list, tsId, boundTok) {
         const timeLabel = formatCardTimeLabel(t.time);
         const isSectional = String(t.time || "").includes("+") || String(t.restrict_part_switching) === "1";
         const hasOptional = String(t.show_sectionselector) === "1";
+        const attemptRecord = ATTEMPTED_TESTS[rawId];
 
         grid.innerHTML += `
-            <div class="grid-card p-5 flex flex-col justify-between">
+            <div class="grid-card p-5 flex flex-col justify-between ${attemptRecord ? 'border-emerald-300 bg-emerald-50/20' : ''}">
                 <div>
                     <div class="flex justify-between items-center gap-2 flex-wrap">
-                        <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-black">TEST #${t.id || (idx + 1)}</span>
-                        <span class="text-[11px] font-extrabold text-emerald-700">⏱️ ${timeLabel}</span>
+                        <span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-900 text-[10px] font-black">TEST #${rawId}</span>
+                        <div class="flex items-center gap-1.5">
+                            ${attemptRecord ? `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">✅ Score: ${attemptRecord.score}/${attemptRecord.maxMarks}</span>` : ""}
+                            <span class="text-[11px] font-extrabold text-emerald-700">⏱️ ${timeLabel}</span>
+                        </div>
                     </div>
                     <h4 class="font-black text-base text-slate-900 mt-2">${t.title}</h4>
                     <div class="flex gap-2.5 mt-2 text-xs font-bold text-slate-600 flex-wrap">
@@ -936,11 +1216,13 @@ function renderTestTitlesGrid(list, tsId, boundTok) {
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-4 pt-3 border-t border-sky-100">
-                    <button onclick="launchCbtTest('${tKey}')" class="btn-watch flex-1 text-xs">🚀 Start Test</button>
+                    <button onclick="launchCbtTest('${tKey}')" class="btn-watch flex-1 text-xs">${attemptRecord ? '🔄 Re-Attempt Test' : '🚀 Start Test'}</button>
                     ${pdfUrl ? `<button onclick="openTestPdf('${tKey}')" class="btn-pdf1 text-xs">📄 Test PDF</button>` : ""}
                 </div>
             </div>`;
     });
+
+    window.updateDashboardUI();
 }
 
 // =====================================================
@@ -994,6 +1276,10 @@ function exitCbtTest() {
     } else {
         showSlide("slideExplorer");
     }
+    window.updateDashboardUI();
+    if (state.view === "ts_tests" && state.activeSeriesId) {
+        openTestSeriesTitles(state.activeSeriesId, state.activeTsSubId || "-1", state.activeTsSubName || state.activeSeriesTitle);
+    }
 }
 
 // =====================================================
@@ -1016,7 +1302,7 @@ function closePdfSlide() {
 }
 
 // =====================================================
-// USER PERSONAL TOKEN MANAGER (NO CLOUD/ADMIN TOKENS)
+// USER PERSONAL TOKEN MANAGER (INSIDE PROFILE MODAL)
 // =====================================================
 function renderTokenManagerList() {
     const container = document.getElementById("tokenListContainer");
@@ -1024,25 +1310,24 @@ function renderTokenManagerList() {
     container.innerHTML = "";
 
     if (USER_TOKENS.length === 0) {
-        container.innerHTML = `<div class="p-4 text-center text-xs font-bold text-slate-500">Abhi koi personal token saved nahi hai.</div>`;
+        container.innerHTML = `<div class="p-3 text-center text-xs font-bold text-slate-500">Abhi koi personal token saved nahi hai.</div>`;
         return;
     }
 
     USER_TOKENS.forEach((t, idx) => {
-        const shortTok = t.token.slice(0, 32) + "..." + t.token.slice(-14);
+        const shortTok = t.token.slice(0, 26) + "..." + t.token.slice(-10);
         container.innerHTML += `
-            <div class="bg-white border-2 border-sky-200 rounded-2xl p-4 flex flex-wrap justify-between items-center gap-3 shadow-sm">
+            <div class="bg-slate-50 border border-sky-200 rounded-xl p-3 flex flex-wrap justify-between items-center gap-2">
                 <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2">
-                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">MY TOKEN #${idx + 1}</span>
-                        <h5 class="font-extrabold text-sm text-slate-900 truncate">${t.label}</h5>
-                        <span class="text-xs text-slate-500 font-bold">(UID: ${t.userId || "Auto"})</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">TOKEN #${idx + 1}</span>
+                        <h5 class="font-extrabold text-xs text-slate-900 truncate">${t.label}</h5>
                     </div>
-                    <p class="text-[11px] font-mono text-slate-600 mt-1 truncate">${shortTok}</p>
+                    <p class="text-[10px] font-mono text-slate-500 mt-0.5 truncate">${shortTok}</p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="navigator.clipboard.writeText('${t.token}'); alert('Token Copied!');" class="btn-nav bg-sky-600 text-white border-0 text-xs">📋 Copy</button>
-                    ${USER_TOKENS.length > 1 ? `<button onclick="deleteToken('${t.id}')" class="btn-nav bg-rose-600 text-white border-0 text-xs">🗑 Delete</button>` : `<span class="text-[11px] font-bold text-emerald-600">● Primary</span>`}
+                <div class="flex items-center gap-1.5">
+                    <button onclick="navigator.clipboard.writeText('${t.token}'); alert('Token Copied!');" class="px-2.5 py-1 rounded-lg bg-sky-600 text-white font-extrabold text-[10px] border-0 cursor-pointer">📋 Copy</button>
+                    ${USER_TOKENS.length > 1 ? `<button onclick="deleteToken('${t.id}')" class="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-extrabold text-[10px] border-0 cursor-pointer">🗑</button>` : `<span class="text-[10px] font-bold text-emerald-600">● Active</span>`}
                 </div>
             </div>`;
     });
@@ -1085,12 +1370,13 @@ async function addNewToken() {
     localStorage.setItem("rwa_user_tokens_v2", JSON.stringify(USER_TOKENS));
     localStorage.setItem("rwa_user_profile_v2", JSON.stringify(USER_PROFILE));
 
-    sendProfileToMongoDB(verifiedUser, token, "Added via My Token Manager", "N/A");
+    sendProfileToMongoDB(verifiedUser, token, "Added via Profile Token Manager", "N/A");
 
     document.getElementById("newTokLabel").value = "";
     document.getElementById("newTokUid").value = "";
     document.getElementById("newTokValue").value = "";
-    renderTokenManagerList();
+    updateTokenBadge();
+    openProfileModal();
     alert(`✅ Token Verified & Saved for ${verifiedUser.name || "User"}!`);
 }
 
@@ -1109,8 +1395,9 @@ function filterGrid() {
 }
 
 // =====================================================
-// INITIALIZATION ON PAGE LOAD (DIRECT SHOW ALL TEST SERIES)
+// INITIALIZATION ON PAGE LOAD
 // =====================================================
 updateTokenBadge();
+window.updateDashboardUI();
 openTestSeriesExplorer("paid_ts");
 processPendingBotSync();

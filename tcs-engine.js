@@ -1,5 +1,5 @@
 // =========================================================
-// RWA SKY PORTAL - EXACT TCS CBT MOCK TEST & BOOKMARK ENGINE (tcs-engine.js)
+// RWA SKY PORTAL - EXACT TCS CBT MOCK TEST & SCORECARD RECOVERY (tcs-engine.js)
 // =========================================================
 
 (function injectExactTcsStyles() {
@@ -257,47 +257,25 @@ let tcsState = {
 // SUBJECT & OPTIONAL DETECTOR
 // =========================================================
 const RWA_KNOWN_SECTION_IDS = {
-    "206": "General Awareness",
-    "207": "English",
-    "208": "General Intelligence and Reasoning",
-    "209": "Mathematics",
-    "210": "English",
-    "211": "Computer Knowledge",
-    "212": "English",
-    "213": "Hindi",
-    "215": "Basic Law/Constitution/General Knowledge",
-    "222": "Numerical & Mental Ability Test",
-    "234": "Chemistry",
-    "223": "Mental Aptitude/Intelligence/Reasoning"
+    "206": "General Awareness", "207": "English", "208": "General Intelligence and Reasoning",
+    "209": "Mathematics", "210": "English", "211": "Computer Knowledge", "212": "English",
+    "213": "Hindi", "215": "Basic Law/Constitution/General Knowledge", "222": "Numerical & Mental Ability Test",
+    "234": "Chemistry", "223": "Mental Aptitude/Intelligence/Reasoning"
 };
 
 function stripHtmlText(html) {
     if (!html) return "";
-    return String(html)
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/&nbsp;/gi, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+    return String(html).replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
 }
 
 function cleanQuestionHtml(rawHtml) {
     if (!rawHtml) return "";
-    return String(rawHtml)
-        .replace(/font-size:\s*\d+(\.\d+)?(pt|px)/gi, "")
-        .replace(/<p>\s*(&nbsp;|\s)*\s*<\/p>/gi, "");
+    return String(rawHtml).replace(/font-size:\s*\d+(\.\d+)?(pt|px)/gi, "").replace(/<p>\s*(&nbsp;|\s)*\s*<\/p>/gi, "");
 }
 
 function detectSmartSubjectName(secId, questionsList, rawLabel) {
     const cleanRaw = String(rawLabel || "").trim();
-    if (
-        cleanRaw &&
-        !/^section\s*\d+$/i.test(cleanRaw) &&
-        !/^part\s*[a-z0-9]+$/i.test(cleanRaw) &&
-        !/^\d+$/.test(cleanRaw) &&
-        cleanRaw.toLowerCase() !== "general" &&
-        cleanRaw.toLowerCase() !== "uncategorized"
-    ) {
+    if (cleanRaw && !/^section\s*\d+$/i.test(cleanRaw) && !/^part\s*[a-z0-9]+$/i.test(cleanRaw) && !/^\d+$/.test(cleanRaw) && cleanRaw.toLowerCase() !== "general" && cleanRaw.toLowerCase() !== "uncategorized") {
         return cleanRaw;
     }
 
@@ -306,11 +284,7 @@ function detectSmartSubjectName(secId, questionsList, rawLabel) {
     const sampleCount = Math.min(questionsList.length, 25);
     for (let i = 0; i < sampleCount; i++) {
         const q = questionsList[i];
-        combinedText += " " + stripHtmlText(q.question || q.question_text || "") +
-                        " " + stripHtmlText(q.option_1 || "") +
-                        " " + stripHtmlText(q.option_2 || "") +
-                        " " + stripHtmlText(q.option_3 || "") +
-                        " " + stripHtmlText(q.option_4 || "");
+        combinedText += " " + stripHtmlText(q.question || q.question_text || "") + " " + stripHtmlText(q.option_1 || "") + " " + stripHtmlText(q.option_2 || "") + " " + stripHtmlText(q.option_3 || "") + " " + stripHtmlText(q.option_4 || "");
     }
     const lower = combinedText.toLowerCase();
 
@@ -319,20 +293,14 @@ function detectSmartSubjectName(secId, questionsList, rawLabel) {
     const devCount = devMatches.length;
     const latCount = latMatches.length;
 
-    const engKeywords = [
-        "synonym", "antonym", "idiom", "misspelt", "correctly spelt", "grammatical error",
-        "passive voice", "active voice", "indirect speech", "direct speech", "one word substitution"
-    ];
+    const engKeywords = ["synonym", "antonym", "idiom", "misspelt", "correctly spelt", "grammatical error", "passive voice", "active voice", "indirect speech", "direct speech", "one word substitution"];
     let engHits = 0;
     engKeywords.forEach(kw => { if (lower.includes(kw)) engHits += 2; });
     if (devCount === 0 && latCount > 150) engHits += 6;
     else if (devCount < latCount * 0.03 && latCount > 200) engHits += 4;
     if (idStr === "212" || idStr === "207" || idStr === "210") engHits += 3;
 
-    const hindiKeywords = [
-        "विलोम", "पर्यायवाची", "मुहावरा", "मुहावरे", "वर्तनी", "वाक्यांश", "संधि", "समास",
-        "तत्सम", "तद्भव", "उपसर्ग", "प्रत्यय", "गद्यांश", "रिक्त स्थान", "रेखांकित"
-    ];
+    const hindiKeywords = ["विलोम", "पर्यायवाची", "मुहावरा", "मुहावरे", "वर्तनी", "वाक्यांश", "संधि", "समास", "तत्सम", "तद्भव", "उपसर्ग", "प्रत्यय", "गद्यांश", "रिक्त स्थान", "रेखांकित"];
     let hindiHits = 0;
     hindiKeywords.forEach(kw => { if (combinedText.includes(kw)) hindiHits += 2; });
     if (idStr === "213") hindiHits += 5;
@@ -355,9 +323,7 @@ function detectSmartSubjectName(secId, questionsList, rawLabel) {
     gaKeywords.forEach(kw => { if (lower.includes(kw)) gScore += 2; });
     compKeywords.forEach(kw => { if (lower.includes(kw)) cScore += 2; });
 
-    if (RWA_KNOWN_SECTION_IDS[idStr] && Math.max(rScore, mScore, gScore, cScore) <= 5) {
-        return RWA_KNOWN_SECTION_IDS[idStr];
-    }
+    if (RWA_KNOWN_SECTION_IDS[idStr] && Math.max(rScore, mScore, gScore, cScore) <= 5) return RWA_KNOWN_SECTION_IDS[idStr];
 
     const maxScore = Math.max(rScore, mScore, gScore, cScore);
     if (maxScore > 0) {
@@ -371,33 +337,9 @@ function detectSmartSubjectName(secId, questionsList, rawLabel) {
 }
 
 // =========================================================
-// LAUNCH TEST
+// FETCH AND PARSE CORE LOGIC
 // =========================================================
-window.launchTcsCbtEngine = async function(tKey) {
-    const t = state.testMap[tKey];
-    if (!t) return;
-
-    tcsState.activeTestKey = tKey;
-    tcsState.testMeta = t;
-    tcsState.isSubmitted = false;
-    tcsState.responses = {};
-    tcsState.currentQIdx = 0;
-    tcsState.activeSectionIndex = 0;
-    tcsState.selectedOptionalByGroup = {};
-
-    showSlide("slideTestAttempt");
-
-    document.getElementById("start-screen").classList.remove("tcs-hidden");
-    document.getElementById("live-test-screen").classList.add("tcs-hidden");
-    document.getElementById("submit-screen").classList.add("tcs-hidden");
-    document.getElementById("analysis-screen").classList.add("tcs-hidden");
-    document.getElementById("solutions-screen").classList.add("tcs-hidden");
-    document.getElementById("full-sol-screen").classList.add("tcs-hidden");
-
-    document.getElementById("tcs-start-title").textContent = t.title || "(TCS Pattern) Mock Test";
-    const subContainer = document.getElementById("subjects-selection-container");
-    subContainer.innerHTML = `<div style="text-align:center; padding:18px; font-weight:700; color:#475569;">🔄 Loading Test Subjects & Questions...</div>`;
-
+async function fetchTestQuestionsAndMetadata(t) {
     let rawQUrl = t.test_questions_url || t.questions_url || "";
     if (rawQUrl) rawQUrl = rawQUrl.replace(/\\\//g, "/");
 
@@ -445,22 +387,17 @@ window.launchTcsCbtEngine = async function(tKey) {
     }
 
     tcsState.rawAllQuestions = loadedQuestions;
-    prepareAllSectionsAndRenderStart(externalSecMap);
-};
+    return externalSecMap;
+}
 
-function prepareAllSectionsAndRenderStart(externalSecMap) {
+function prepareAllSections(externalSecMap) {
     const t = tcsState.testMeta || {};
     const groupMap = new Map();
 
     tcsState.rawAllQuestions.forEach((q, idx) => {
         const secId = String(q.section_id || q.part_id || q.subject_id || "1").trim();
         if (!groupMap.has(secId)) {
-            groupMap.set(secId, {
-                secId: secId,
-                rawLabel: q.section_name || q.subject_name || q.part_title || q.subject || "",
-                isExplicitOptional: String(q.is_optional || q.optional || "0") === "1",
-                questions: []
-            });
+            groupMap.set(secId, { secId: secId, rawLabel: q.section_name || q.subject_name || q.part_title || q.subject || "", isExplicitOptional: String(q.is_optional || q.optional || "0") === "1", questions: [] });
         }
         groupMap.get(secId).questions.push({ ...q, rawIndex: idx });
     });
@@ -470,31 +407,17 @@ function prepareAllSectionsAndRenderStart(externalSecMap) {
 
     groupMap.forEach((secObj, secId) => {
         const ext = externalSecMap[secId] || {};
-        const detectedName = detectSmartSubjectName(
-            secId,
-            secObj.questions,
-            ext.name || secObj.rawLabel
-        );
-
+        const detectedName = detectSmartSubjectName(secId, secObj.questions, ext.name || secObj.rawLabel);
         let finalName = detectedName;
         if (usedNamesCount[finalName]) usedNamesCount[finalName]++;
         else usedNamesCount[finalName] = 1;
 
-        const isLangSubject = (
-            finalName === "English" ||
-            finalName === "Hindi" ||
-            finalName === "Marathi" ||
-            finalName === "Bengali"
-        );
+        const isLangSubject = (finalName === "English" || finalName === "Hindi" || finalName === "Marathi" || finalName === "Bengali");
 
         parsedSections.push({
-            secId: secId,
-            name: finalName,
-            questions: secObj.questions,
+            secId: secId, name: finalName, questions: secObj.questions,
             isExplicitOptional: Boolean(ext.isOptional || secObj.isExplicitOptional),
-            isLangSubject: isLangSubject,
-            isOptional: false,
-            optGroup: ext.optGroup || "A"
+            isLangSubject: isLangSubject, isOptional: false, optGroup: ext.optGroup || "A"
         });
     });
 
@@ -504,39 +427,82 @@ function prepareAllSectionsAndRenderStart(externalSecMap) {
 
     const shouldEnableLangOptional = (
         langSections.length >= 2 &&
-        (
-            String(t.show_sectionselector) === "1" ||
-            parsedSections.length >= 5 ||
-            (expectedActiveQs > 0 && expectedActiveQs < tcsState.rawAllQuestions.length)
-        )
+        (String(t.show_sectionselector) === "1" || parsedSections.length >= 5 || (expectedActiveQs > 0 && expectedActiveQs < tcsState.rawAllQuestions.length))
     );
 
     parsedSections.forEach(sec => {
         if (sec.isExplicitOptional || (shouldEnableLangOptional && sec.isLangSubject)) {
-            sec.isOptional = true;
-            sec.optGroup = "A";
+            sec.isOptional = true; sec.optGroup = "A";
         }
     });
 
     const fixedOrderPriority = { "General Awareness": 1, "General Intelligence and Reasoning": 2, "Mathematics": 3 };
     const optionalOrderPriority = { "English": 1, "Hindi": 2 };
 
-    const fixedSecs = parsedSections
-        .filter(s => !s.isOptional)
-        .sort((a, b) => (fixedOrderPriority[a.name] || 99) - (fixedOrderPriority[b.name] || 99));
-
-    const optionalSecs = parsedSections
-        .filter(s => s.isOptional)
-        .sort((a, b) => (optionalOrderPriority[a.name] || 99) - (optionalOrderPriority[b.name] || 99));
+    const fixedSecs = parsedSections.filter(s => !s.isOptional).sort((a, b) => (fixedOrderPriority[a.name] || 99) - (fixedOrderPriority[b.name] || 99));
+    const optionalSecs = parsedSections.filter(s => s.isOptional).sort((a, b) => (optionalOrderPriority[a.name] || 99) - (optionalOrderPriority[b.name] || 99));
 
     tcsState.allParsedSections = [...fixedSecs, ...optionalSecs];
+}
 
+function buildFlatQuestionsForActiveSections() {
+    const chosenOptId = tcsState.selectedOptionalByGroup["A"];
+    const chosenSecs = tcsState.allParsedSections.filter(sec => {
+        if (!sec.isOptional) return true;
+        return String(sec.secId) === String(chosenOptId);
+    });
+
+    const flatQuestions = [];
+    tcsState.activeSections = chosenSecs.map(sec => {
+        const mappedQs = sec.questions.map(q => {
+            const newGlobalIdx = flatQuestions.length;
+            const qCopy = { ...q, originalIndex: newGlobalIdx, _sectionName: sec.name };
+            flatQuestions.push(qCopy);
+            return qCopy;
+        });
+        return { secId: sec.secId, name: sec.name, questions: mappedQs };
+    });
+    tcsState.questions = flatQuestions;
+}
+
+// =========================================================
+// LAUNCH NEW TEST
+// =========================================================
+window.launchTcsCbtEngine = async function(tKey) {
+    const t = state.testMap[tKey];
+    if (!t) return;
+
+    tcsState.activeTestKey = tKey;
+    tcsState.testMeta = t;
+    tcsState.isSubmitted = false;
+    tcsState.responses = {};
+    tcsState.currentQIdx = 0;
+    tcsState.activeSectionIndex = 0;
+    tcsState.selectedOptionalByGroup = {};
+
+    showSlide("slideTestAttempt");
+
+    document.getElementById("start-screen").classList.remove("tcs-hidden");
+    document.getElementById("live-test-screen").classList.add("tcs-hidden");
+    document.getElementById("submit-screen").classList.add("tcs-hidden");
+    document.getElementById("analysis-screen").classList.add("tcs-hidden");
+    document.getElementById("solutions-screen").classList.add("tcs-hidden");
+    document.getElementById("full-sol-screen").classList.add("tcs-hidden");
+
+    document.getElementById("tcs-start-title").textContent = t.title || "(TCS Pattern) Mock Test";
+    const subContainer = document.getElementById("subjects-selection-container");
+    subContainer.innerHTML = `<div style="text-align:center; padding:18px; font-weight:700; color:#475569;">🔄 Loading Test Subjects & Questions...</div>`;
+
+    const externalSecMap = await fetchTestQuestionsAndMetadata(t);
+    prepareAllSections(externalSecMap);
+
+    const optionalSecs = tcsState.allParsedSections.filter(s => s.isOptional);
     if (optionalSecs.length > 0 && !tcsState.selectedOptionalByGroup["A"]) {
         tcsState.selectedOptionalByGroup["A"] = optionalSecs[0].secId;
     }
 
     renderStartScreenUI();
-}
+};
 
 function renderStartScreenUI() {
     const t = tcsState.testMeta || {};
@@ -550,8 +516,7 @@ function renderStartScreenUI() {
         html += `
             <div class="tcs-sub-row fixed-sub">
                 <div class="tcs-sub-left">
-                    <span style="font-size:16px;">✅</span>
-                    <span>${sec.name}</span>
+                    <span style="font-size:16px;">✅</span><span>${sec.name}</span>
                 </div>
                 <span class="tcs-sub-pill">${sec.questions.length} Qs</span>
             </div>`;
@@ -575,20 +540,16 @@ function renderStartScreenUI() {
 
     container.innerHTML = html;
 
-    const activeSecs = getActiveChosenSections();
+    buildFlatQuestionsForActiveSections(); // Temporarily build to calculate stats
+
     let totalActiveQs = 0;
     let totalActiveMarks = 0;
-
-    activeSecs.forEach(sec => {
+    tcsState.activeSections.forEach(sec => {
         totalActiveQs += sec.questions.length;
-        sec.questions.forEach(q => {
-            totalActiveMarks += parseFloat(q.positive_marks || 2.0);
-        });
+        sec.questions.forEach(q => { totalActiveMarks += parseFloat(q.positive_marks || 2.0); });
     });
 
-    if (t.marks && !isNaN(parseFloat(t.marks)) && optionalSecs.length > 0) {
-        totalActiveMarks = parseFloat(t.marks);
-    }
+    if (t.marks && !isNaN(parseFloat(t.marks)) && optionalSecs.length > 0) totalActiveMarks = parseFloat(t.marks);
 
     const rawTimeStr = String(t.time || "60").trim();
     let totalMins = 60;
@@ -613,37 +574,10 @@ window.selectOptionalSubject = function(groupKey, secId) {
     renderStartScreenUI();
 };
 
-function getActiveChosenSections() {
-    const chosenOptId = tcsState.selectedOptionalByGroup["A"];
-    return tcsState.allParsedSections.filter(sec => {
-        if (!sec.isOptional) return true;
-        return String(sec.secId) === String(chosenOptId);
-    });
-}
-
-// =========================================================
-// START LIVE CBT TEST
-// =========================================================
 window.startTest = function() {
     const t = tcsState.testMeta || {};
-    const chosenSecs = getActiveChosenSections();
+    buildFlatQuestionsForActiveSections();
 
-    const flatQuestions = [];
-    tcsState.activeSections = chosenSecs.map(sec => {
-        const mappedQs = sec.questions.map(q => {
-            const newGlobalIdx = flatQuestions.length;
-            const qCopy = { ...q, originalIndex: newGlobalIdx, _sectionName: sec.name };
-            flatQuestions.push(qCopy);
-            return qCopy;
-        });
-        return {
-            secId: sec.secId,
-            name: sec.name,
-            questions: mappedQs
-        };
-    });
-
-    tcsState.questions = flatQuestions;
     tcsState.responses = {};
     tcsState.currentQIdx = 0;
     tcsState.activeSectionIndex = 0;
@@ -669,6 +603,58 @@ window.startTest = function() {
     startTcsTimer();
 };
 
+// =========================================================
+// SCORECARD RECOVERY (RE-OPEN ATTEMPTED TEST)
+// =========================================================
+window.recoverTcsScorecard = async function(rawId) {
+    const tKey = `test_${rawId}`;
+    const t = state.testMap[tKey];
+    
+    if (!t) {
+        alert("Is test ki detail abhi fetch nahi hui hai. Kripya pehle Test Series open karein.");
+        return;
+    }
+
+    const savedObj = SAVED_RESPONSES[rawId];
+    if (!savedObj || !savedObj.responses) {
+        alert("Is test ka detailed response data device par majood nahi hai. Kripya test ko re-attempt karein.");
+        return;
+    }
+
+    tcsState.activeTestKey = tKey;
+    tcsState.testMeta = t;
+    tcsState.isSubmitted = true;
+    tcsState.responses = savedObj.responses || {};
+    tcsState.selectedOptionalByGroup = savedObj.optionalGroups || {};
+
+    showSlide("slideTestAttempt");
+
+    document.getElementById("start-screen").classList.add("tcs-hidden");
+    document.getElementById("live-test-screen").classList.add("tcs-hidden");
+    document.getElementById("submit-screen").classList.add("tcs-hidden");
+    document.getElementById("solutions-screen").classList.add("tcs-hidden");
+    document.getElementById("full-sol-screen").classList.add("tcs-hidden");
+    
+    const analysisScreen = document.getElementById("analysis-screen");
+    analysisScreen.classList.remove("tcs-hidden");
+    analysisScreen.innerHTML = `<div style="padding:100px 20px; text-align:center; font-weight:800; color:#1a237e;">🔄 Fetching your Scorecard & Test Data...</div>`;
+
+    const externalSecMap = await fetchTestQuestionsAndMetadata(t);
+    prepareAllSections(externalSecMap);
+    
+    // Default optional if missing in saved data
+    const optionalSecs = tcsState.allParsedSections.filter(s => s.isOptional);
+    if (optionalSecs.length > 0 && !tcsState.selectedOptionalByGroup["A"]) {
+        tcsState.selectedOptionalByGroup["A"] = optionalSecs[0].secId;
+    }
+
+    buildFlatQuestionsForActiveSections();
+    renderAnalysisScreen();
+};
+
+// =========================================================
+// LIVE TEST UI ENGINE
+// =========================================================
 function formatMMSS(sec) {
     const m = String(Math.floor(sec / 60)).padStart(2, "0");
     const s = String(sec % 60).padStart(2, "0");
@@ -711,9 +697,7 @@ function startTcsTimer() {
         }
 
         tcsState.secondsLeft--;
-        if (tcsState.isSectionalTiming) {
-            tcsState.sectionSecondsLeft[tcsState.activeSectionIndex] = tcsState.secondsLeft;
-        }
+        if (tcsState.isSectionalTiming) tcsState.sectionSecondsLeft[tcsState.activeSectionIndex] = tcsState.secondsLeft;
 
         const timerEl = document.getElementById("tcs-timer-display");
         if (timerEl) timerEl.textContent = formatHHMMSS(tcsState.secondsLeft);
@@ -724,7 +708,6 @@ function renderTcsTabs() {
     const wrap = document.getElementById("tcs-tabs-container");
     if (!wrap) return;
     wrap.innerHTML = "";
-
     tcsState.activeSections.forEach((sec, idx) => {
         const isActive = idx === tcsState.activeSectionIndex;
         wrap.innerHTML += `<div class="${isActive ? "tcs-tab active" : "tcs-tab"}" onclick="switchTcsSection(${idx})">${sec.name}</div>`;
@@ -747,9 +730,7 @@ function loadQuestion(globalIdx) {
     const q = tcsState.questions[globalIdx];
     if (!q) return;
 
-    if (!tcsState.responses[globalIdx]) {
-        tcsState.responses[globalIdx] = { status: "unattempted", chosenOption: null, timeSpent: 0 };
-    }
+    if (!tcsState.responses[globalIdx]) tcsState.responses[globalIdx] = { status: "unattempted", chosenOption: null, timeSpent: 0 };
 
     let foundSecIdx = tcsState.activeSectionIndex;
     tcsState.activeSections.forEach((sec, sIdx) => {
@@ -773,32 +754,26 @@ function loadQuestion(globalIdx) {
     document.getElementById("tcs-live-pos").textContent = `+${Number.isInteger(posNum) ? posNum : posNum.toFixed(2)}`;
     document.getElementById("tcs-live-neg").textContent = `-${Number.isInteger(negNum) ? negNum : negNum}`;
 
-    // Update Live Test Bookmark Button State
     const qKey = `test_${tcsState.testMeta.id || tcsState.activeTestKey}_q_${q.id || globalIdx}`;
     const bmBtn = document.getElementById("tcs-bookmark-btn");
     if (bmBtn) {
         const isSaved = typeof window.isQuestionBookmarked === "function" && window.isQuestionBookmarked(qKey);
         bmBtn.textContent = isSaved ? "★ Saved" : "☆ Save";
         bmBtn.className = isSaved
-            ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer"
+            ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer shadow-sm"
             : "px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer";
     }
 
     const qTxtBox = document.getElementById("tcs-q-text");
-    const rawQHtml = (tcsState.lang === "hi" && (q.question_hi || q.question_hindi))
-        ? (q.question_hi || q.question_hindi)
-        : (q.question || q.question_text || "");
+    const rawQHtml = (tcsState.lang === "hi" && (q.question_hi || q.question_hindi)) ? (q.question_hi || q.question_hindi) : (q.question || q.question_text || "");
     qTxtBox.innerHTML = cleanQuestionHtml(rawQHtml);
 
     const optBox = document.getElementById("tcs-options-container");
     optBox.innerHTML = "";
     const letters = ["A", "B", "C", "D", "E"];
-
     const opts = [
-        { id: "1", text: q.option_1 || q.opt1 },
-        { id: "2", text: q.option_2 || q.opt2 },
-        { id: "3", text: q.option_3 || q.opt3 },
-        { id: "4", text: q.option_4 || q.opt4 },
+        { id: "1", text: q.option_1 || q.opt1 }, { id: "2", text: q.option_2 || q.opt2 },
+        { id: "3", text: q.option_3 || q.opt3 }, { id: "4", text: q.option_4 || q.opt4 },
         q.option_5 ? { id: "5", text: q.option_5 } : null
     ].filter(Boolean);
 
@@ -814,10 +789,8 @@ function loadQuestion(globalIdx) {
             </div>`;
     });
 
-    if (window.MathJax && MathJax.typesetPromise) {
-        MathJax.typesetPromise([qTxtBox, optBox]).catch(() => {});
-    }
-};
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([qTxtBox, optBox]).catch(() => {});
+}
 
 window.toggleCurrentQuestionBookmark = function() {
     const q = tcsState.questions[tcsState.currentQIdx];
@@ -825,27 +798,18 @@ window.toggleCurrentQuestionBookmark = function() {
     const qKey = `test_${tcsState.testMeta.id || tcsState.activeTestKey}_q_${q.id || tcsState.currentQIdx}`;
     
     const optsArr = [q.option_1 || q.opt1, q.option_2 || q.opt2, q.option_3 || q.opt3, q.option_4 || q.opt4].filter(Boolean);
-    const expText = (tcsState.lang === "hi" && (q.explanation_hi || q.solution_hi))
-        ? (q.explanation_hi || q.solution_hi)
-        : (q.solution_text || q.explanation || q.solution || "");
+    const expText = (tcsState.lang === "hi" && (q.explanation_hi || q.solution_hi)) ? (q.explanation_hi || q.solution_hi) : (q.solution_text || q.explanation || q.solution || "");
 
     const isNowSaved = window.toggleBookmarkItem({
-        qKey: qKey,
-        testTitle: tcsState.testMeta.title || "Mock Test",
-        subject: q._sectionName || "Subject",
-        qNumber: tcsState.currentQIdx + 1,
-        question: q.question || q.question_text || "",
-        options: optsArr,
-        answer: String(q.answer || q.correct_option || "1"),
-        solution: expText
+        qKey: qKey, testTitle: tcsState.testMeta.title || "Mock Test", subject: q._sectionName || "Subject",
+        qNumber: tcsState.currentQIdx + 1, question: q.question || q.question_text || "",
+        options: optsArr, answer: String(q.answer || q.correct_option || "1"), solution: expText
     });
 
     const bmBtn = document.getElementById("tcs-bookmark-btn");
     if (bmBtn) {
         bmBtn.textContent = isNowSaved ? "★ Saved" : "☆ Save";
-        bmBtn.className = isNowSaved
-            ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer"
-            : "px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer";
+        bmBtn.className = isNowSaved ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer shadow-sm" : "px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer";
     }
 };
 
@@ -855,27 +819,18 @@ window.toggleSolutionQuestionBookmark = function() {
     const qKey = `test_${tcsState.testMeta.id || tcsState.activeTestKey}_q_${q.id || tcsState.activeFullSolIdx}`;
     
     const optsArr = [q.option_1 || q.opt1, q.option_2 || q.opt2, q.option_3 || q.opt3, q.option_4 || q.opt4].filter(Boolean);
-    const expText = (tcsState.lang === "hi" && (q.explanation_hi || q.solution_hi))
-        ? (q.explanation_hi || q.solution_hi)
-        : (q.solution_text || q.explanation || q.solution || "");
+    const expText = (tcsState.lang === "hi" && (q.explanation_hi || q.solution_hi)) ? (q.explanation_hi || q.solution_hi) : (q.solution_text || q.explanation || q.solution || "");
 
     const isNowSaved = window.toggleBookmarkItem({
-        qKey: qKey,
-        testTitle: tcsState.testMeta.title || "Mock Test",
-        subject: q._sectionName || "Subject",
-        qNumber: tcsState.activeFullSolIdx + 1,
-        question: q.question || q.question_text || "",
-        options: optsArr,
-        answer: String(q.answer || q.correct_option || "1"),
-        solution: expText
+        qKey: qKey, testTitle: tcsState.testMeta.title || "Mock Test", subject: q._sectionName || "Subject",
+        qNumber: tcsState.activeFullSolIdx + 1, question: q.question || q.question_text || "",
+        options: optsArr, answer: String(q.answer || q.correct_option || "1"), solution: expText
     });
 
     const bmBtn = document.getElementById("fs-bookmark-btn");
     if (bmBtn) {
         bmBtn.textContent = isNowSaved ? "★ Saved" : "☆ Save";
-        bmBtn.className = isNowSaved
-            ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer"
-            : "px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer";
+        bmBtn.className = isNowSaved ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer shadow-sm" : "px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer";
     }
 };
 
@@ -908,23 +863,14 @@ window.clearResponse = function() {
     loadQuestion(idx);
 };
 
-window.nextQuestion = function() {
-    if (tcsState.currentQIdx < tcsState.questions.length - 1) loadQuestion(tcsState.currentQIdx + 1);
-};
-
-window.prevQuestion = function() {
-    if (tcsState.currentQIdx > 0) loadQuestion(tcsState.currentQIdx - 1);
-};
+window.nextQuestion = function() { if (tcsState.currentQIdx < tcsState.questions.length - 1) loadQuestion(tcsState.currentQIdx + 1); };
+window.prevQuestion = function() { if (tcsState.currentQIdx > 0) loadQuestion(tcsState.currentQIdx - 1); };
 
 window.toggleTcsLangMode = function() {
     tcsState.lang = tcsState.lang === "en" ? "hi" : "en";
-    if (!document.getElementById("live-test-screen").classList.contains("tcs-hidden")) {
-        loadQuestion(tcsState.currentQIdx);
-    } else if (!document.getElementById("solutions-screen").classList.contains("tcs-hidden")) {
-        renderSolutionsList(tcsState.activeSolFilter);
-    } else if (!document.getElementById("full-sol-screen").classList.contains("tcs-hidden")) {
-        renderFullSolutionContent(tcsState.activeFullSolIdx);
-    }
+    if (!document.getElementById("live-test-screen").classList.contains("tcs-hidden")) loadQuestion(tcsState.currentQIdx);
+    else if (!document.getElementById("solutions-screen").classList.contains("tcs-hidden")) renderSolutionsList(tcsState.activeSolFilter);
+    else if (!document.getElementById("full-sol-screen").classList.contains("tcs-hidden")) renderFullSolutionContent(tcsState.activeFullSolIdx);
 };
 
 window.toggleTcsFullScreen = function() {
@@ -1025,15 +971,35 @@ window.closeSubmit = function() {
 };
 
 // =========================================================
-// SUBMIT TEST & RECORD ATTEMPT
+// SUBMIT TEST & RENDER SCORECARD
 // =========================================================
 window.submitTest = function() {
     if (tcsState.timerInterval) clearInterval(tcsState.timerInterval);
     tcsState.isSubmitted = true;
+    
+    // Save to App State (Attempts & Responses)
+    const testId = tcsState.testMeta.id || tcsState.activeTestKey;
+    const attemptInfo = calculateScoresAndRenderAnalysis();
+    
+    const savedData = {
+        responses: tcsState.responses,
+        optionalGroups: tcsState.selectedOptionalByGroup
+    };
+    if (typeof window.recordUserTestAttempt === "function") {
+        window.recordUserTestAttempt(testId, attemptInfo, savedData);
+    }
+};
 
+function renderAnalysisScreen() {
+    // Shared render logic for both Submit and Recover Scorecard
+    calculateScoresAndRenderAnalysis();
+}
+
+function calculateScoresAndRenderAnalysis() {
     document.getElementById("submit-screen").classList.add("tcs-hidden");
     document.getElementById("live-test-screen").classList.add("tcs-hidden");
-    document.getElementById("analysis-screen").classList.remove("tcs-hidden");
+    const analysisScreen = document.getElementById("analysis-screen");
+    analysisScreen.classList.remove("tcs-hidden");
 
     let correct = 0, incorrect = 0, unattempted = 0, score = 0;
     let timeCorr = 0, timeInc = 0, timeUna = 0;
@@ -1066,69 +1032,79 @@ window.submitTest = function() {
     maxMarks = Math.round(maxMarks);
     const accuracy = (correct + incorrect) > 0 ? Math.round((correct / (correct + incorrect)) * 100) : 0;
 
-    // SAVE ATTEMPT TO DASHBOARD HISTORY
-    const testId = tcsState.testMeta.id || tcsState.activeTestKey;
-    if (typeof window.recordUserTestAttempt === "function") {
-        window.recordUserTestAttempt(testId, {
-            title: tcsState.testMeta.title || "Mock Test",
-            seriesTitle: tcsState.activeSeriesTitle || "Paid Test Series",
-            score: score,
-            maxMarks: maxMarks,
-            correct: correct,
-            incorrect: incorrect,
-            unattempted: unattempted,
-            accuracy: accuracy
-        });
-    }
+    const analysisHtml = `
+        <div class="analysis-header">
+            <button onclick="exitCbtTest()" class="px-3 py-1.5 rounded-lg bg-white/15 text-white font-bold text-xs border-0 cursor-pointer">⬅ Exit</button>
+            <h1 style="font-size: 18px; margin: 0 auto; font-weight: 800;">Test Analysis & Rank</h1>
+            <button onclick="reAttemptCbtTest()" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold text-xs border-0 cursor-pointer">🔄 Re-Attempt</button>
+        </div>
+        
+        <div class="tcs-page-inner">
+            <div id="dynamic-remark" class="remark-banner" style="display:block;">
+                ${accuracy >= 80 && correct > 0 ? "🎉 Excellent Performance! Keep it up!" : (accuracy >= 50 && correct > 0 ? "👍 Good Attempt! Practice more to reach the top." : "⚠️ Needs Improvement! Review full solutions carefully.")}
+            </div>
 
-    document.getElementById("res-score").textContent = `${score}/${maxMarks}`;
-    document.getElementById("res-correct").textContent = correct;
-    document.getElementById("res-incorrect").textContent = incorrect;
-    document.getElementById("res-unatt").textContent = unattempted;
-    document.getElementById("res-acc").textContent = `${accuracy}%`;
-    document.getElementById("res-rank").textContent = score >= maxMarks * 0.75 ? "#12" : "#148";
-    document.getElementById("res-perc").textContent = `${Math.min(99.8, Math.max(15, (score / (maxMarks || 1)) * 100 + 12)).toFixed(1)}%`;
+            <div class="a-card" style="margin-top: 20px;">
+                <div class="sc-grid">
+                    <div class="sc-item"><div class="sc-icon ic-score">🏅</div><div class="sc-val">${score}/${maxMarks}</div><div class="sc-lbl">Your Score</div></div>
+                    <div class="sc-item"><div class="sc-icon ic-rank">🏆</div><div class="sc-val">${score >= maxMarks * 0.75 ? "#12" : "#148"}</div><div class="sc-lbl">Rank</div></div>
+                    <div class="sc-item"><div class="sc-icon ic-perc">👥</div><div class="sc-val">${Math.min(99.8, Math.max(15, (score / (maxMarks || 1)) * 100 + 12)).toFixed(1)}%</div><div class="sc-lbl">Percentile</div></div>
+                </div>
+                <div class="sc-grid">
+                    <div class="sc-item"><div class="sc-icon ic-corr">✓</div><div class="sc-val">${correct}</div><div class="sc-lbl">Correct</div></div>
+                    <div class="sc-item"><div class="sc-icon ic-inc">✕</div><div class="sc-val">${incorrect}</div><div class="sc-lbl">Incorrect</div></div>
+                    <div class="sc-item"><div class="sc-icon ic-una">−</div><div class="sc-val">${unattempted}</div><div class="sc-lbl">Unattempted</div></div>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <div class="sc-icon ic-acc" style="border-radius: 16px; margin: 0 auto 10px auto;">🎯</div>
+                    <div class="sc-val">${accuracy}%</div><div class="sc-lbl">Accuracy</div>
+                </div>
+            </div>
 
-    document.getElementById("cmp-score").textContent = score;
-    document.getElementById("cmp-top").textContent = (maxMarks * 0.88).toFixed(1);
-    document.getElementById("cmp-avg").textContent = (maxMarks * 0.48).toFixed(1);
-    document.getElementById("cmp-acc").textContent = `${accuracy}%`;
-    document.getElementById("cmp-c").textContent = correct;
-    document.getElementById("cmp-top-c").textContent = Math.round(tcsState.questions.length * 0.9);
-    document.getElementById("cmp-avg-c").textContent = Math.round(tcsState.questions.length * 0.52);
-    document.getElementById("cmp-w").textContent = incorrect;
-    document.getElementById("cmp-top-w").textContent = Math.round(tcsState.questions.length * 0.04);
-    document.getElementById("cmp-avg-w").textContent = Math.round(tcsState.questions.length * 0.18);
+            <div class="a-card">
+                <h2 style="font-size: 18px; text-align: center; margin-bottom: 16px; font-weight: 800;">Comparison</h2>
+                <table class="comp-table">
+                    <thead><tr><th style="border:none;"></th><th class="col-you">You</th><th class="col-top">Topper</th><th class="col-avg">Avg</th></tr></thead>
+                    <tbody>
+                        <tr><td class="row-lbl">Score</td><td class="sc-you">${score}</td><td class="sc-top">${(maxMarks * 0.88).toFixed(1)}</td><td class="sc-avg">${(maxMarks * 0.48).toFixed(1)}</td></tr>
+                        <tr><td class="row-lbl">Accuracy</td><td class="ac-you">${accuracy}%</td><td class="ac-top">95%</td><td class="ac-avg">55%</td></tr>
+                        <tr><td class="row-lbl">Correct</td><td class="cr-you">${correct}</td><td class="cr-top">${Math.round(tcsState.questions.length * 0.9)}</td><td class="cr-avg">${Math.round(tcsState.questions.length * 0.52)}</td></tr>
+                        <tr><td class="row-lbl">Wrong</td><td class="wr-you">${incorrect}</td><td class="wr-top">${Math.round(tcsState.questions.length * 0.04)}</td><td class="wr-avg">${Math.round(tcsState.questions.length * 0.18)}</td></tr>
+                    </tbody>
+                </table>
+            </div>
 
-    const totalQ = tcsState.questions.length || 1;
-    const cDeg = (correct / totalQ) * 360;
-    const wDeg = cDeg + (incorrect / totalQ) * 360;
-    const donut = document.getElementById("res-donut");
-    if (donut) {
-        donut.style.background = `conic-gradient(#4caf50 0deg ${cDeg}deg, #e53935 ${cDeg}deg ${wDeg}deg, #5c6bc0 ${wDeg}deg 360deg)`;
-    }
+            <div class="a-card">
+                <h3 style="text-align: center; margin-bottom: 20px; font-size: 18px; font-weight: 800;">Time Stats</h3>
+                <div class="time-stats-box">
+                    <div class="ts-left">Correct<br>${formatMMSS(timeCorr)}</div>
+                    <div class="ts-right">
+                        <div class="ts-rt-top">Unattempted: ${formatMMSS(timeUna)}</div>
+                        <div class="ts-rt-bot">Incorrect<br>${formatMMSS(timeInc)}</div>
+                    </div>
+                </div>
+            </div>
 
-    document.getElementById("ts-box-corr").innerHTML = `Correct<br>${formatMMSS(timeCorr)}`;
-    document.getElementById("ts-box-una").innerHTML = `Unattempted: ${formatMMSS(timeUna)}`;
-    document.getElementById("ts-box-inc").innerHTML = `Incorrect<br>${formatMMSS(timeInc)}`;
+            <div class="sec-title">Section Wise Stats</div>
+            <div id="analysis-sections-container"></div>
+            
+            <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                <button class="tcs-btn tcs-btn-submit" style="width: 100%; padding: 15px; font-size: 16px; background: #1a237e; border-color: #1a237e; border-radius: 10px;" onclick="openSolutions()">📊 View Solutions & Full Analysis ➔</button>
+            </div>
+        </div>
+    `;
+    
+    analysisScreen.innerHTML = analysisHtml;
 
-    const rem = document.getElementById("dynamic-remark");
+    // Adjust remark colors
+    const rem = analysisScreen.querySelector(".remark-banner");
     if (rem) {
-        rem.style.display = "block";
-        if (accuracy >= 80 && correct > 0) {
-            rem.className = "remark-banner rem-excellent";
-            rem.textContent = "🎉 Excellent Performance! Keep it up!";
-        } else if (accuracy >= 50 && correct > 0) {
-            rem.className = "remark-banner rem-great";
-            rem.textContent = "👍 Good Attempt! Practice more to reach the top.";
-        } else {
-            rem.className = "remark-banner rem-poor";
-            rem.textContent = "⚠️ Needs Improvement! Review full solutions carefully.";
-        }
+        if (accuracy >= 80 && correct > 0) rem.className = "remark-banner rem-excellent";
+        else if (accuracy >= 50 && correct > 0) rem.className = "remark-banner rem-great";
+        else rem.className = "remark-banner rem-poor";
     }
 
-    const sCont = document.getElementById("analysis-sections-container");
-    sCont.innerHTML = "";
+    const sCont = analysisScreen.querySelector("#analysis-sections-container");
     tcsState.activeSections.forEach(sec => {
         let sCorr = 0, sInc = 0, sUna = 0, sScore = 0;
         let stCorr = 0, stInc = 0, stUna = 0;
@@ -1140,18 +1116,9 @@ window.submitTest = function() {
             const neg = parseFloat(sq.negative_marks || 0.25);
             const sp = r.timeSpent || 0;
 
-            if (!r.chosenOption) {
-                sUna++;
-                stUna += sp;
-            } else if (String(r.chosenOption) === ans) {
-                sCorr++;
-                sScore += pos;
-                stCorr += sp;
-            } else {
-                sInc++;
-                sScore -= neg;
-                stInc += sp;
-            }
+            if (!r.chosenOption) { sUna++; stUna += sp; }
+            else if (String(r.chosenOption) === ans) { sCorr++; sScore += pos; stCorr += sp; }
+            else { sInc++; sScore -= neg; stInc += sp; }
         });
 
         sCont.innerHTML += `
@@ -1168,13 +1135,20 @@ window.submitTest = function() {
                 </div>
             </div>`;
     });
-};
 
-window.reAttemptTcsTest = function() { window.launchTcsCbtEngine(tcsState.activeTestKey); };
+    return {
+        title: tcsState.testMeta.title || "Mock Test",
+        seriesTitle: tcsState.activeSeriesTitle || "Paid Test Series",
+        score: score, maxMarks: maxMarks, correct: correct,
+        incorrect: incorrect, unattempted: unattempted, accuracy: accuracy
+    };
+}
 
+window.reAttemptCbtTest = function() { window.launchTcsCbtEngine(tcsState.activeTestKey); };
 window.exitTcsTest = function() {
     if (tcsState.timerInterval) clearInterval(tcsState.timerInterval);
     showSlide("slideExplorer");
+    if (typeof window.updateDashboardUI === "function") window.updateDashboardUI();
 };
 
 window.openSolutions = function() {
@@ -1223,9 +1197,7 @@ function renderSolutionsList(filter) {
         cont.innerHTML += `
             <div class="sol-item" onclick="openFullSolution(${idx})" style="cursor:pointer;">
                 <div class="sol-num-col">
-                    <div class="sol-num">${idx + 1}
-                        <div class="sol-status-icon ${badgeClass}">${iconHtml}</div>
-                    </div>
+                    <div class="sol-num">${idx + 1}<div class="sol-status-icon ${badgeClass}">${iconHtml}</div></div>
                     <div class="sol-line"></div>
                 </div>
                 <div class="sol-card">
@@ -1236,9 +1208,7 @@ function renderSolutionsList(filter) {
             </div>`;
     });
 
-    if (window.MathJax && MathJax.typesetPromise) {
-        MathJax.typesetPromise([cont]).catch(() => {});
-    }
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([cont]).catch(() => {});
 }
 
 window.openFullSolution = function(idx) {
@@ -1266,31 +1236,21 @@ function renderFullSolutionContent(idx) {
         const isSaved = typeof window.isQuestionBookmarked === "function" && window.isQuestionBookmarked(qKey);
         bmBtn.textContent = isSaved ? "★ Saved" : "☆ Save";
         bmBtn.className = isSaved
-            ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer"
+            ? "px-2.5 py-1 rounded-lg bg-amber-500 text-white border border-amber-600 font-extrabold text-xs cursor-pointer shadow-sm"
             : "px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 font-extrabold text-xs cursor-pointer";
     }
 
-    const qTxt = (tcsState.lang === "hi" && (q.question_hi || q.question_hindi))
-        ? (q.question_hi || q.question_hindi)
-        : (q.question || q.question_text || "");
+    const qTxt = (tcsState.lang === "hi" && (q.question_hi || q.question_hindi)) ? (q.question_hi || q.question_hindi) : (q.question || q.question_text || "");
     document.getElementById("fs-q-txt").innerHTML = cleanQuestionHtml(qTxt);
 
     const optBox = document.getElementById("fs-options-container");
     optBox.innerHTML = "";
     const letters = ["A", "B", "C", "D", "E"];
-
-    const opts = [
-        { id: "1", text: q.option_1 || q.opt1 },
-        { id: "2", text: q.option_2 || q.opt2 },
-        { id: "3", text: q.option_3 || q.opt3 },
-        { id: "4", text: q.option_4 || q.opt4 },
-        q.option_5 ? { id: "5", text: q.option_5 } : null
-    ].filter(Boolean);
+    const opts = [{ id: "1", text: q.option_1 || q.opt1 }, { id: "2", text: q.option_2 || q.opt2 }, { id: "3", text: q.option_3 || q.opt3 }, { id: "4", text: q.option_4 || q.opt4 }, q.option_5 ? { id: "5", text: q.option_5 } : null].filter(Boolean);
 
     opts.forEach((opt, oIdx) => {
         const isCorrectOpt = String(opt.id) === correctAns;
         const isUserChosen = r.chosenOption && String(r.chosenOption) === String(opt.id);
-
         let cls = "fs-opt";
         if (isCorrectOpt) cls = "fs-opt correct";
         else if (isUserChosen && !isCorrectOpt) cls = "fs-opt wrong";
@@ -1306,31 +1266,14 @@ function renderFullSolutionContent(idx) {
             </div>`;
     });
 
-    const expText = (tcsState.lang === "hi" && (q.explanation_hi || q.solution_hi))
-        ? (q.explanation_hi || q.solution_hi)
-        : (q.solution_text || q.explanation || q.solution || "Detailed solution above.");
+    const expText = (tcsState.lang === "hi" && (q.explanation_hi || q.solution_hi)) ? (q.explanation_hi || q.solution_hi) : (q.solution_text || q.explanation || q.solution || "Detailed solution above.");
     document.getElementById("fs-exp-text").innerHTML = cleanQuestionHtml(expText);
-
-    if (window.MathJax && MathJax.typesetPromise) {
-        MathJax.typesetPromise([document.getElementById("full-sol-screen")]).catch(() => {});
-    }
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([document.getElementById("full-sol-screen")]).catch(() => {});
 }
 
 window.closeFullSol = function() {
     document.getElementById("full-sol-screen").classList.add("tcs-hidden");
     document.getElementById("solutions-screen").classList.remove("tcs-hidden");
 };
-
-window.nextFullSol = function() {
-    if (tcsState.activeFullSolIdx < tcsState.questions.length - 1) {
-        tcsState.activeFullSolIdx++;
-        renderFullSolutionContent(tcsState.activeFullSolIdx);
-    }
-};
-
-window.prevFullSol = function() {
-    if (tcsState.activeFullSolIdx > 0) {
-        tcsState.activeFullSolIdx--;
-        renderFullSolutionContent(tcsState.activeFullSolIdx);
-    }
-};
+window.nextFullSol = function() { if (tcsState.activeFullSolIdx < tcsState.questions.length - 1) { tcsState.activeFullSolIdx++; renderFullSolutionContent(tcsState.activeFullSolIdx); } };
+window.prevFullSol = function() { if (tcsState.activeFullSolIdx > 0) { tcsState.activeFullSolIdx--; renderFullSolutionContent(tcsState.activeFullSolIdx); } };

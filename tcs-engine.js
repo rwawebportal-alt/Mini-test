@@ -261,9 +261,9 @@ let tcsState = {
 // =========================================================
 const RWA_KNOWN_SECTION_IDS = {
     "206": "General Awareness",
-    "207": "English",
+    "207": "Quantitative Aptitude",
     "208": "General Intelligence and Reasoning",
-    "209": "Mathematics",
+    "209": "English language",
     "210": "English",
     "211": "Computer Knowledge",
     "212": "English",
